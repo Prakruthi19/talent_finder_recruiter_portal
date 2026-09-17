@@ -34,10 +34,10 @@ export function SubmissionListPage() {
   const [sortBy, sortDir] = sort.split(":") as [SubmissionListParams["sortBy"], SubmissionListParams["sortDir"]];
 
   const { data, isLoading, isError } = useGetSubmissionsQuery(
-    tenantId ? { page, pageSize: PAGE_SIZE, search: debouncedSearch || undefined, sortBy, sortDir } : undefined,
+    { tenantId: tenantId ?? "", page, pageSize: PAGE_SIZE, search: debouncedSearch || undefined, sortBy, sortDir },
     { skip: !tenantId }
   );
-  const { data: summary } = useGetSubmissionSummaryQuery(undefined, { skip: !tenantId });
+  const { data: summary } = useGetSubmissionSummaryQuery({ tenantId: tenantId ?? "" }, { skip: !tenantId });
 
   return (
     <ListPageLayout
@@ -80,19 +80,25 @@ export function SubmissionListPage() {
         <Table>
           <THead>
             <Th>Job Order</Th>
-            <Th>Candidate</Th>
+            <Th className="hidden sm:table-cell">Candidate</Th>
             <Th>Status</Th>
-            <Th>Shortlisted On</Th>
+            <Th className="hidden sm:table-cell">Shortlisted On</Th>
           </THead>
           <TBody>
             {data.items.map((s) => (
               <Tr key={s.id}>
                 <Td className="font-medium text-slate-900">
-                  <Link to={`/job-orders/${s.jobOrderId}`} className="hover:text-brand-700 hover:underline">
+                  <Link
+                    to={`/job-orders/${s.jobOrderId}`}
+                    className="block max-w-[44vw] truncate hover:text-brand-700 hover:underline sm:max-w-none"
+                  >
                     {s.jobOrder?.title ?? "—"}
                   </Link>
+                  <div className="mt-0.5 max-w-[44vw] truncate text-xs font-normal text-slate-500 sm:hidden">
+                    {s.candidate?.fullName ?? "—"}
+                  </div>
                 </Td>
-                <Td>
+                <Td className="hidden sm:table-cell">
                   <Link to={`/candidates/${s.candidateId}`} className="hover:text-brand-700 hover:underline">
                     {s.candidate?.fullName ?? "—"}
                   </Link>
@@ -100,7 +106,7 @@ export function SubmissionListPage() {
                 <Td>
                   <StatusBadge status={s.status} />
                 </Td>
-                <Td>{formatDate(s.createdAt)}</Td>
+                <Td className="hidden sm:table-cell">{formatDate(s.createdAt)}</Td>
               </Tr>
             ))}
           </TBody>

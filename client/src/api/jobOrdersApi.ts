@@ -3,6 +3,12 @@ import { toQueryString } from "./queryParams";
 import type { JobOrder, JobOrderMatchesResult, PageResult } from "../types";
 
 export interface JobOrderListParams {
+  // Included so RTK Query's cache key changes per tenant — the actual
+  // scoping happens server-side via the X-Tenant-Id header (see
+  // baseApi.ts), which RTK Query's cache never looks at. Without this,
+  // switching tenants while page/search/sort stay at their defaults
+  // silently serves the *previous* tenant's cached list.
+  tenantId: string;
   page?: number;
   pageSize?: number;
   search?: string;
@@ -36,8 +42,8 @@ export interface JobOrderSummary {
 
 export const jobOrdersApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getJobOrders: builder.query<PageResult<JobOrder>, JobOrderListParams | void>({
-      query: (params) => `/job-orders${toQueryString({ ...params })}`,
+    getJobOrders: builder.query<PageResult<JobOrder>, JobOrderListParams>({
+      query: ({ tenantId: _tenantId, ...params }) => `/job-orders${toQueryString({ ...params })}`,
       providesTags: (result) =>
         result
           ? [
@@ -82,7 +88,7 @@ export const jobOrdersApi = baseApi.injectEndpoints({
       invalidatesTags: [{ type: "JobOrder", id: "LIST" }, { type: "JobOrder", id: "SUMMARY" }],
     }),
     /** GET /api/job-orders/summary -> jobOrder.controller.summary -> jobOrder.service.summary (2 Prisma counts, tenant-scoped) */
-    getJobOrderSummary: builder.query<JobOrderSummary, void>({
+    getJobOrderSummary: builder.query<JobOrderSummary, { tenantId: string }>({
       query: () => "/job-orders/summary",
       providesTags: [{ type: "JobOrder", id: "SUMMARY" }],
     }),

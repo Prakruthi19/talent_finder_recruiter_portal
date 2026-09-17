@@ -71,7 +71,7 @@ export function TenantListPage() {
         <Table>
           <THead>
             <Th>Tenant Name</Th>
-            <Th>Tenant ID</Th>
+            <Th className="hidden sm:table-cell">Tenant ID</Th>
             <Th>Status</Th>
           </THead>
           <TBody>
@@ -86,7 +86,7 @@ export function TenantListPage() {
                 <Td className="font-medium text-slate-900 group-hover:text-brand-700 group-hover:underline">
                   {tenant.name}
                 </Td>
-                <Td className="font-mono text-xs text-slate-500">{tenant.id}</Td>
+                <Td className="hidden font-mono text-xs text-slate-500 sm:table-cell">{tenant.id}</Td>
                 <Td>
                   <StatusBadge status={tenant.status} />
                 </Td>

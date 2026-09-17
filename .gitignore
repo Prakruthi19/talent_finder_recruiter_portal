@@ -6,6 +6,6 @@ build/
 *.log
 *.tsbuildinfo
 .tsc-out/
-uploads/*
-!uploads/.gitkeep
+**/uploads/*
+!**/uploads/.gitkeep
 .DS_Store

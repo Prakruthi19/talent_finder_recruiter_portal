@@ -3,6 +3,12 @@ import { toQueryString } from "./queryParams";
 import type { PageResult, Submission } from "../types";
 
 export interface SubmissionListParams {
+  // Included so RTK Query's cache key changes per tenant — the actual
+  // scoping happens server-side via the X-Tenant-Id header (see
+  // baseApi.ts), which RTK Query's cache never looks at. Without this,
+  // switching tenants while page/search/sort stay at their defaults
+  // silently serves the *previous* tenant's cached list.
+  tenantId: string;
   page?: number;
   pageSize?: number;
   search?: string;
@@ -23,8 +29,8 @@ export const submissionsApi = baseApi.injectEndpoints({
      *   -> submission.repository.findMany (Prisma, includes candidate + jobOrder relations)
      *   -> Postgres `submissions` table (rows created by shortlistCandidate in jobOrdersApi.ts)
      */
-    getSubmissions: builder.query<PageResult<Submission>, SubmissionListParams | void>({
-      query: (params) => `/submissions${toQueryString({ ...params })}`,
+    getSubmissions: builder.query<PageResult<Submission>, SubmissionListParams>({
+      query: ({ tenantId: _tenantId, ...params }) => `/submissions${toQueryString({ ...params })}`,
       providesTags: (result) =>
         result
           ? [
@@ -34,7 +40,7 @@ export const submissionsApi = baseApi.injectEndpoints({
           : [{ type: "Submission" as const, id: "LIST" }],
     }),
     /** GET /api/submissions/summary -> submission.controller.summary -> submission.service.summary (2 Prisma counts, tenant-scoped) */
-    getSubmissionSummary: builder.query<SubmissionSummary, void>({
+    getSubmissionSummary: builder.query<SubmissionSummary, { tenantId: string }>({
       query: () => "/submissions/summary",
       providesTags: [{ type: "Submission", id: "SUMMARY" }],
     }),
