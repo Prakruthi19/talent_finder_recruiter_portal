@@ -9,7 +9,7 @@ CREATE TYPE "SubmissionStatus" AS ENUM ('SHORTLISTED', 'SUBMITTED_TO_CLIENT', 'I
 
 -- CreateTable
 CREATE TABLE "tenants" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "status" "TenantStatus" NOT NULL DEFAULT 'ACTIVE',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -20,7 +20,7 @@ CREATE TABLE "tenants" (
 
 -- CreateTable
 CREATE TABLE "skills" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
 
     CONSTRAINT "skills_pkey" PRIMARY KEY ("id")
@@ -28,8 +28,8 @@ CREATE TABLE "skills" (
 
 -- CreateTable
 CREATE TABLE "candidates" (
-    "id" TEXT NOT NULL,
-    "tenantId" TEXT NOT NULL,
+    "id" UUID NOT NULL,
+    "tenantId" UUID NOT NULL,
     "fullName" TEXT NOT NULL,
     "email" TEXT,
     "phone" TEXT,
@@ -45,16 +45,16 @@ CREATE TABLE "candidates" (
 
 -- CreateTable
 CREATE TABLE "candidate_skills" (
-    "candidateId" TEXT NOT NULL,
-    "skillId" TEXT NOT NULL,
+    "candidateId" UUID NOT NULL,
+    "skillId" UUID NOT NULL,
 
     CONSTRAINT "candidate_skills_pkey" PRIMARY KEY ("candidateId","skillId")
 );
 
 -- CreateTable
 CREATE TABLE "job_orders" (
-    "id" TEXT NOT NULL,
-    "tenantId" TEXT NOT NULL,
+    "id" UUID NOT NULL,
+    "tenantId" UUID NOT NULL,
     "title" TEXT NOT NULL,
     "clientName" TEXT,
     "location" TEXT NOT NULL,
@@ -69,18 +69,18 @@ CREATE TABLE "job_orders" (
 
 -- CreateTable
 CREATE TABLE "job_order_required_skills" (
-    "jobOrderId" TEXT NOT NULL,
-    "skillId" TEXT NOT NULL,
+    "jobOrderId" UUID NOT NULL,
+    "skillId" UUID NOT NULL,
 
     CONSTRAINT "job_order_required_skills_pkey" PRIMARY KEY ("jobOrderId","skillId")
 );
 
 -- CreateTable
 CREATE TABLE "submissions" (
-    "id" TEXT NOT NULL,
-    "tenantId" TEXT NOT NULL,
-    "candidateId" TEXT NOT NULL,
-    "jobOrderId" TEXT NOT NULL,
+    "id" UUID NOT NULL,
+    "tenantId" UUID NOT NULL,
+    "candidateId" UUID NOT NULL,
+    "jobOrderId" UUID NOT NULL,
     "status" "SubmissionStatus" NOT NULL DEFAULT 'SHORTLISTED',
     "matchCount" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -99,10 +99,19 @@ CREATE UNIQUE INDEX "skills_name_key" ON "skills"("name");
 CREATE INDEX "candidates_tenantId_idx" ON "candidates"("tenantId");
 
 -- CreateIndex
+CREATE INDEX "candidate_skills_skillId_idx" ON "candidate_skills"("skillId");
+
+-- CreateIndex
 CREATE INDEX "job_orders_tenantId_idx" ON "job_orders"("tenantId");
 
 -- CreateIndex
+CREATE INDEX "job_order_required_skills_skillId_idx" ON "job_order_required_skills"("skillId");
+
+-- CreateIndex
 CREATE INDEX "submissions_tenantId_idx" ON "submissions"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "submissions_jobOrderId_idx" ON "submissions"("jobOrderId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "submissions_candidateId_jobOrderId_key" ON "submissions"("candidateId", "jobOrderId");

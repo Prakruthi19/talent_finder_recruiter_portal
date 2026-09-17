@@ -12,7 +12,7 @@ datasource db {
 // Submission rows are scoped to exactly one tenant.
 // ---------------------------------------------------------------------------
 model Tenant {
-  id        String   @id @default(uuid())
+  id        String   @id @default(uuid()) @db.Uuid
   name      String   @unique
   status    TenantStatus @default(ACTIVE)
   createdAt DateTime @default(now())
@@ -37,7 +37,7 @@ enum TenantStatus {
 // matching query is a plain join, not string parsing.
 // ---------------------------------------------------------------------------
 model Skill {
-  id   String @id @default(uuid())
+  id   String @id @default(uuid()) @db.Uuid
   name String @unique
 
   candidateSkills CandidateSkill[]
@@ -50,8 +50,8 @@ model Skill {
 // Candidate
 // ---------------------------------------------------------------------------
 model Candidate {
-  id              String   @id @default(uuid())
-  tenantId        String
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @db.Uuid
   fullName        String
   email           String?
   phone           String?
@@ -71,8 +71,8 @@ model Candidate {
 }
 
 model CandidateSkill {
-  candidateId String
-  skillId     String
+  candidateId String @db.Uuid
+  skillId     String @db.Uuid
 
   candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   skill     Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
@@ -90,8 +90,8 @@ model CandidateSkill {
 // JobOrder
 // ---------------------------------------------------------------------------
 model JobOrder {
-  id              String         @id @default(uuid())
-  tenantId        String
+  id              String         @id @default(uuid()) @db.Uuid
+  tenantId        String         @db.Uuid
   title           String
   clientName      String?
   location        String
@@ -115,8 +115,8 @@ enum JobOrderStatus {
 }
 
 model JobOrderRequiredSkill {
-  jobOrderId String
-  skillId    String
+  jobOrderId String @db.Uuid
+  skillId    String @db.Uuid
 
   jobOrder JobOrder @relation(fields: [jobOrderId], references: [id], onDelete: Cascade)
   skill    Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
@@ -131,10 +131,10 @@ model JobOrderRequiredSkill {
 // order. One candidate can only be shortlisted once per job order.
 // ---------------------------------------------------------------------------
 model Submission {
-  id          String           @id @default(uuid())
-  tenantId    String
-  candidateId String
-  jobOrderId  String
+  id          String           @id @default(uuid()) @db.Uuid
+  tenantId    String           @db.Uuid
+  candidateId String           @db.Uuid
+  jobOrderId  String           @db.Uuid
   status      SubmissionStatus @default(SHORTLISTED)
   matchCount  Int
   createdAt   DateTime         @default(now())

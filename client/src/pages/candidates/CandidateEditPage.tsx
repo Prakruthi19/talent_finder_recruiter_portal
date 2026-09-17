@@ -78,6 +78,7 @@ export function CandidateEditPage() {
           onChange={(e) => setFullName(e.target.value)}
           error={errors.fullName}
         />
+        
         <FormField label="Location" value={location} onChange={(e) => setLocation(e.target.value)} />
         <FormField
           label="Total Experience (Years)"

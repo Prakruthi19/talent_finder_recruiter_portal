@@ -144,8 +144,8 @@ export const jobOrderRepository = {
       JOIN candidate_skills cs ON cs."skillId" = jors."skillId"
       JOIN candidates c ON c."id" = cs."candidateId"
       JOIN skills s ON s."id" = cs."skillId"
-      WHERE jors."jobOrderId" = ${jobOrderId}
-        AND c."tenantId" = ${tenantId}
+      WHERE jors."jobOrderId" = ${jobOrderId}::uuid
+        AND c."tenantId" = ${tenantId}::uuid
       GROUP BY cs."candidateId"
       ORDER BY "matchCount" DESC
     `;
