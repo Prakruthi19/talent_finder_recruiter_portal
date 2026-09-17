@@ -29,4 +29,9 @@ export const skillRepository = {
 
     return prisma.skill.findMany({ where: { name: { in: unique } } });
   },
+
+  async findAllNames(): Promise<string[]> {
+    const skills = await prisma.skill.findMany({ select: { name: true } });
+    return skills.map((s) => s.name);
+  },
 };

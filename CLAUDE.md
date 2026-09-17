@@ -48,7 +48,9 @@ a one-line CRUD op — the assignment is graded on this separation.
 - Match = exact, case-insensitive name intersection between a candidate's skills and a job order's
   required skills. Rank by match count, descending. Zero-match candidates are excluded, not shown
   as "0 matches".
-- Fuzzy matching (fuse.js etc.) is optional/bonus — don't add it unless asked.
+- Fuzzy matching (fuse.js) is used, but *only* for detecting known skills inside free-text CV content
+  during auto-fill (`server/src/lib/cvFieldExtractor.ts`) — never in this core matching query. Don't
+  loosen this to fuzzy matching without being asked; the spec calls for exact keyword matching here.
 
 ## Conventions
 
@@ -57,8 +59,14 @@ a one-line CRUD op — the assignment is graded on this separation.
 - No auth/login in this build (assumption — the spec has no login user story). Don't add JWT/session
   scaffolding unless the user asks for it.
 - CV files are stored on local disk under `server/uploads/`, path referenced from `Candidate.cvPath`.
-  CV text-parsing (auto-fill) is optional/bonus per the spec — a working manual form is equally
-  acceptable and should not block the core deliverables.
+- CV auto-fill (bonus, implemented): `POST /api/candidates/parse-cv` (multipart, parse-only — nothing
+  persisted) extracts text via `pdf-parse`/`mammoth` and detects fields via regex + `compromise` NLP +
+  fuzzy skill matching (`server/src/lib/cvFieldExtractor.ts`, `cvParsing.service.ts`). Returns
+  `{ readable: false }` for near-empty extracted text (scanned/corrupt CV) rather than guessing — the
+  frontend falls back to manual entry, and every auto-filled field stays editable before save, per
+  spec. Real file bytes are verified against the claimed type (`lib/fileTypeCheck.ts`, via `file-type`)
+  on both this endpoint and the actual create-candidate upload — never trust a client-sent Content-Type
+  alone.
 - AI feature (bonus): `POST /api/job-orders/:id/insight { candidateId }` generates a short natural-
   language fit assessment via `server/src/lib/aiProvider.ts` (any OpenAI-compatible chat completions
   endpoint — Groq free tier by default). Purely additive — the actual skill-match ranking never

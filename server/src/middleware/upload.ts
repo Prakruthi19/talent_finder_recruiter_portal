@@ -29,8 +29,13 @@ function fileFilter(_req: Request, file: Express.Multer.File, cb: FileFilterCall
   }
 }
 
-export const uploadCv = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-});
+const LIMITS = { fileSize: 5 * 1024 * 1024 }; // 5MB
+
+export const uploadCv = multer({ storage, fileFilter, limits: LIMITS });
+
+/**
+ * Memory storage for the parse-only endpoint (candidate not created yet —
+ * nothing worth persisting to disk). candidatesRoutes' actual create path
+ * still uses uploadCv (disk storage) above; unrelated to this.
+ */
+export const uploadCvMemory = multer({ storage: multer.memoryStorage(), fileFilter, limits: LIMITS });

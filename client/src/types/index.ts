@@ -95,3 +95,17 @@ export interface JobOrderMatchesResult {
   matchingCandidates: MatchingCandidateRow[];
   shortlistedCandidates: MatchingCandidateRow[];
 }
+
+export interface ParsedCandidateFields {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  experienceYears?: number;
+  skills: string[];
+}
+
+export interface CvParseResult {
+  readable: boolean;
+  fields?: ParsedCandidateFields;
+}

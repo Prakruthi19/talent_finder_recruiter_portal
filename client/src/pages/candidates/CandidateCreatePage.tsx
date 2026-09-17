@@ -1,7 +1,7 @@
 import { ChangeEvent, FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiUploadCloud } from "react-icons/fi";
-import { useCreateCandidateMutation } from "../../api/candidatesApi";
+import { useCreateCandidateMutation, useParseCvMutation } from "../../api/candidatesApi";
 import { useAppSelector } from "../../store/hooks";
 import { FormPageLayout } from "../../components/ui/FormPageLayout";
 import { FormField } from "../../components/forms/FormField";
@@ -26,15 +26,36 @@ export function CandidateCreatePage() {
   const [cvNotice, setCvNotice] = useState<string>();
   const [errors, setErrors] = useState<FormErrors>({});
   const [createCandidate, { isLoading }] = useCreateCandidateMutation();
+  const [parseCv, { isLoading: isParsing }] = useParseCvMutation();
 
-  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
     setCvFile(file);
-    setCvNotice(
-      file
-        ? "CV attached. Auto-fill from CV text isn't enabled in this build — please confirm the fields below manually."
-        : undefined
-    );
+    setCvNotice(undefined);
+    if (!file) return;
+
+    try {
+      const result = await parseCv(file).unwrap();
+      if (!result.readable) {
+        setCvNotice(
+          "Couldn't read this file (scanned image, corrupt, or no text layer) — please fill in the fields manually."
+        );
+        return;
+      }
+
+      const fields = result.fields ?? { skills: [] };
+      if (fields.fullName) setFullName((prev) => prev || fields.fullName!);
+      if (fields.location) setLocation((prev) => prev || fields.location!);
+      if (fields.experienceYears !== undefined) {
+        setExperienceYears((prev) => prev || String(fields.experienceYears));
+      }
+      if (fields.skills.length > 0) {
+        setSkills((prev) => Array.from(new Set([...prev, ...fields.skills])));
+      }
+      setCvNotice("Fields auto-filled from the CV where detected — review and edit before saving.");
+    } catch {
+      setCvNotice("Couldn't parse this file — please fill in the fields manually.");
+    }
   }
 
   function validate(): boolean {
@@ -82,8 +103,10 @@ export function CandidateCreatePage() {
             type="file"
             accept=".pdf,.docx"
             onChange={handleFileChange}
-            className="text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100"
+            disabled={isParsing}
+            className="text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100 disabled:opacity-60"
           />
+          {isParsing && <p className="text-xs text-slate-500">Reading CV and detecting fields...</p>}
           {cvNotice && <p className="text-xs text-amber-600">{cvNotice}</p>}
           <p className="text-xs text-slate-400">Accepts .pdf or .docx, up to 5MB.</p>
         </div>
