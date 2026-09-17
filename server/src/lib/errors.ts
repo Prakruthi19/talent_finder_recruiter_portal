@@ -26,3 +26,10 @@ export class ConflictError extends AppError {
     super(message, 409);
   }
 }
+
+/** A downstream dependency (e.g. the AI provider) isn't configured or failed. */
+export class ServiceUnavailableError extends AppError {
+  constructor(message: string) {
+    super(message, 503);
+  }
+}

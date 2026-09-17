@@ -59,7 +59,11 @@ a one-line CRUD op — the assignment is graded on this separation.
 - CV files are stored on local disk under `server/uploads/`, path referenced from `Candidate.cvPath`.
   CV text-parsing (auto-fill) is optional/bonus per the spec — a working manual form is equally
   acceptable and should not block the core deliverables.
-- Don't reach for AI features unless asked — they're explicitly "not mandatory" in the spec.
+- AI feature (bonus): `POST /api/job-orders/:id/insight { candidateId }` generates a short natural-
+  language fit assessment via `server/src/lib/aiProvider.ts` (any OpenAI-compatible chat completions
+  endpoint — Groq free tier by default). Purely additive — the actual skill-match ranking never
+  depends on it. Returns 503 with a clear message if `AI_API_KEY` isn't set; don't make any other
+  feature depend on the AI provider being configured.
 
 ## Running Locally
 
@@ -71,3 +75,24 @@ cd client && npm run dev      # frontend
 
 Seed data must produce enough tenants/candidates/job orders that skill-match ranking is visibly
 meaningful on first run (spec requirement — don't skip this).
+
+## Tests
+
+`npm test` in `server/` or `client/` runs Vitest (`npm run test:watch` for watch mode). Backend
+tests target the **service layer** with repositories mocked via `vi.mock` — that's where the
+business logic worth testing actually lives, per the layering rule above; controllers/routes are
+thin enough not to need their own tests. Frontend tests cover pure utility functions only
+(`lib/format.ts`, `lib/skillColor.ts`, `api/queryParams.ts`) — no component/RTL tests yet.
+
+## Performance Notes
+
+- The skill-matching query (`jobOrder.repository.findMatchCounts`) is a raw SQL join, not an
+  app-code loop — see the comment there before "optimizing" it back into JS.
+- `CandidateSkill.skillId` and `JobOrderRequiredSkill.skillId` have explicit indexes beyond their
+  composite PKs, because the matching join filters on `skillId`, which the PK (`[candidateId,
+  skillId]` / `[jobOrderId, skillId]`) doesn't serve efficiently on its own.
+- `Submission.jobOrderId` has its own index for the same reason (Job Order Details page's
+  `findByJobOrder` filters on it directly).
+- If search (`contains`/ILIKE) needs to scale beyond the seed-data size, add a `pg_trgm` GIN index
+  rather than more B-tree indexes — not done yet since it needs a Postgres extension and isn't
+  justified at this data volume.

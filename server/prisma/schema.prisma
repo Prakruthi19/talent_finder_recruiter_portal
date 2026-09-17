@@ -78,6 +78,11 @@ model CandidateSkill {
   skill     Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
   @@id([candidateId, skillId])
+  // The [candidateId, skillId] PK only serves lookups starting with
+  // candidateId. The matching query (jobOrder.repository.findMatchCounts)
+  // joins on skillId, so it needs its own index to avoid a full scan of
+  // this table on every match calculation.
+  @@index([skillId])
   @@map("candidate_skills")
 }
 
@@ -117,6 +122,7 @@ model JobOrderRequiredSkill {
   skill    Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
   @@id([jobOrderId, skillId])
+  @@index([skillId])
   @@map("job_order_required_skills")
 }
 
@@ -140,6 +146,9 @@ model Submission {
 
   @@unique([candidateId, jobOrderId])
   @@index([tenantId])
+  // Job Order Details page (findByJobOrder) filters by jobOrderId directly;
+  // the [candidateId, jobOrderId] unique index doesn't serve that lookup.
+  @@index([jobOrderId])
   @@map("submissions")
 }
 

@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { FiArrowLeft, FiEdit2, FiTrash2, FiCheckCircle } from "react-icons/fi";
+import { FiArrowLeft, FiEdit2, FiTrash2, FiCheckCircle, FiZap } from "react-icons/fi";
 import {
   useGetJobOrderMatchesQuery,
   useShortlistCandidateMutation,
   useDeleteJobOrderMutation,
+  useGenerateMatchInsightMutation,
 } from "../../api/jobOrdersApi";
 import { Button } from "../../components/ui/Button";
 import { SkillChips } from "../../components/ui/SkillChips";
@@ -12,18 +14,64 @@ import { LoadingState, ErrorState, EmptyState } from "../../components/ui/PageSt
 import { formatExperience } from "../../lib/format";
 import type { MatchingCandidateRow } from "../../types";
 
+function AiInsightPanel({ jobOrderId, candidateId }: { jobOrderId: string; candidateId: string }) {
+  const [generateInsight, { isLoading }] = useGenerateMatchInsightMutation();
+  const [insight, setInsight] = useState<string>();
+  const [error, setError] = useState<string>();
+
+  async function handleClick() {
+    setError(undefined);
+    try {
+      const result = await generateInsight({ jobOrderId, candidateId }).unwrap();
+      setInsight(result.insight);
+    } catch (err) {
+      const status = (err as { status?: number })?.status;
+      setError(
+        status === 503
+          ? "AI insight isn't configured on this server (no AI_API_KEY set)."
+          : "Couldn't generate an insight right now."
+      );
+    }
+  }
+
+  if (insight) {
+    return (
+      <p className="mt-2 rounded-md border border-brand-100 bg-brand-50/60 px-3 py-2 text-xs text-slate-700">
+        {insight}
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={isLoading}
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-800 disabled:opacity-50"
+      >
+        <FiZap className="h-3.5 w-3.5" aria-hidden="true" />
+        {isLoading ? "Generating insight..." : "Generate AI Insight"}
+      </button>
+      {error && <p className="mt-1 text-xs text-slate-400">{error}</p>}
+    </div>
+  );
+}
+
 function MatchRow({
+  jobOrderId,
   row,
   onShortlist,
   isShortlisting,
 }: {
+  jobOrderId: string;
   row: MatchingCandidateRow;
   onShortlist: (candidateId: string) => void;
   isShortlisting: boolean;
 }) {
   const matchedSet = new Set(row.matchedSkillNames.map((s) => s.toLowerCase()));
   return (
-    <li className="flex flex-col gap-3 border-b border-slate-100 py-4 last:border-0 sm:flex-row sm:items-center sm:justify-between">
+    <li className="flex flex-col gap-3 border-b border-slate-100 py-4 last:border-0 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex-1">
         <Link
           to={`/candidates/${row.candidate.id}`}
@@ -37,6 +85,7 @@ function MatchRow({
         <div className="mt-2">
           <SkillChips skills={row.candidate.skills.map((s) => s.skill.name)} highlight={matchedSet} />
         </div>
+        <AiInsightPanel jobOrderId={jobOrderId} candidateId={row.candidate.id} />
       </div>
       <div className="flex items-center gap-3 sm:flex-col sm:items-end">
         <span className="text-sm font-semibold text-brand-700">
@@ -151,6 +200,7 @@ export function JobOrderDetailPage() {
             {matchingCandidates.map((row) => (
               <MatchRow
                 key={row.candidate.id}
+                jobOrderId={jobOrder.id}
                 row={row}
                 onShortlist={handleShortlist}
                 isShortlisting={isShortlisting}
