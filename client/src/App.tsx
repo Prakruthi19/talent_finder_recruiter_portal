@@ -1,0 +1,40 @@
+import { Navigate, Route, Routes } from "react-router-dom";
+import { AppLayout } from "./components/layout/AppLayout";
+import { TenantListPage } from "./pages/tenants/TenantListPage";
+import { TenantCreatePage } from "./pages/tenants/TenantCreatePage";
+import { CandidateListPage } from "./pages/candidates/CandidateListPage";
+import { CandidateCreatePage } from "./pages/candidates/CandidateCreatePage";
+import { CandidateDetailPage } from "./pages/candidates/CandidateDetailPage";
+import { CandidateEditPage } from "./pages/candidates/CandidateEditPage";
+import { JobOrderListPage } from "./pages/jobOrders/JobOrderListPage";
+import { JobOrderCreatePage } from "./pages/jobOrders/JobOrderCreatePage";
+import { JobOrderDetailPage } from "./pages/jobOrders/JobOrderDetailPage";
+import { JobOrderEditPage } from "./pages/jobOrders/JobOrderEditPage";
+import { SubmissionListPage } from "./pages/submissions/SubmissionListPage";
+
+export default function App() {
+  return (
+    <Routes>
+      <Route element={<AppLayout />}>
+        <Route index element={<Navigate to="/candidates" replace />} />
+
+        <Route path="tenants" element={<TenantListPage />} />
+        <Route path="tenants/new" element={<TenantCreatePage />} />
+
+        <Route path="candidates" element={<CandidateListPage />} />
+        <Route path="candidates/new" element={<CandidateCreatePage />} />
+        <Route path="candidates/:id" element={<CandidateDetailPage />} />
+        <Route path="candidates/:id/edit" element={<CandidateEditPage />} />
+
+        <Route path="job-orders" element={<JobOrderListPage />} />
+        <Route path="job-orders/new" element={<JobOrderCreatePage />} />
+        <Route path="job-orders/:id" element={<JobOrderDetailPage />} />
+        <Route path="job-orders/:id/edit" element={<JobOrderEditPage />} />
+
+        <Route path="submissions" element={<SubmissionListPage />} />
+
+        <Route path="*" element={<Navigate to="/candidates" replace />} />
+      </Route>
+    </Routes>
+  );
+}
