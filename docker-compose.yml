@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: talent-finder-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: talentfinder
+      POSTGRES_PASSWORD: talentfinder
+      POSTGRES_DB: talentfinder
+    ports:
+      - "55432:5432"
+    volumes:
+      - D:/docker-data/talent-finder-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U talentfinder"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

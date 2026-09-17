@@ -1,0 +1,153 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Tenant: a sourcing channel / recruitment agency. All Candidate, JobOrder and
+// Submission rows are scoped to exactly one tenant.
+// ---------------------------------------------------------------------------
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  status    TenantStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  candidates  Candidate[]
+  jobOrders   JobOrder[]
+  submissions Submission[]
+
+  @@map("tenants")
+}
+
+enum TenantStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// ---------------------------------------------------------------------------
+// Skill: a single normalized skill name, shared across all tenants (skills
+// like "React" or "SQL" aren't tenant-specific concepts). Candidate<->Skill
+// and JobOrder<->Skill are both many-to-many via explicit join tables so the
+// matching query is a plain join, not string parsing.
+// ---------------------------------------------------------------------------
+model Skill {
+  id   String @id @default(uuid())
+  name String @unique
+
+  candidateSkills CandidateSkill[]
+  jobOrderSkills  JobOrderRequiredSkill[]
+
+  @@map("skills")
+}
+
+// ---------------------------------------------------------------------------
+// Candidate
+// ---------------------------------------------------------------------------
+model Candidate {
+  id              String   @id @default(uuid())
+  tenantId        String
+  fullName        String
+  email           String?
+  phone           String?
+  location        String?
+  experienceYears Decimal  @db.Decimal(4, 1)
+  cvPath          String?
+  cvOriginalName  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  skills      CandidateSkill[]
+  submissions Submission[]
+
+  @@index([tenantId])
+  @@map("candidates")
+}
+
+model CandidateSkill {
+  candidateId String
+  skillId     String
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  skill     Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([candidateId, skillId])
+  @@map("candidate_skills")
+}
+
+// ---------------------------------------------------------------------------
+// JobOrder
+// ---------------------------------------------------------------------------
+model JobOrder {
+  id              String         @id @default(uuid())
+  tenantId        String
+  title           String
+  clientName      String?
+  location        String
+  minExperience   Decimal        @db.Decimal(4, 1)
+  numberOfOpenings Int
+  status          JobOrderStatus @default(OPEN)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  tenant      Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  requiredSkills JobOrderRequiredSkill[]
+  submissions Submission[]
+
+  @@index([tenantId])
+  @@map("job_orders")
+}
+
+enum JobOrderStatus {
+  OPEN
+  CLOSED
+}
+
+model JobOrderRequiredSkill {
+  jobOrderId String
+  skillId    String
+
+  jobOrder JobOrder @relation(fields: [jobOrderId], references: [id], onDelete: Cascade)
+  skill    Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([jobOrderId, skillId])
+  @@map("job_order_required_skills")
+}
+
+// ---------------------------------------------------------------------------
+// Submission: created when a recruiter shortlists a candidate against a job
+// order. One candidate can only be shortlisted once per job order.
+// ---------------------------------------------------------------------------
+model Submission {
+  id          String           @id @default(uuid())
+  tenantId    String
+  candidateId String
+  jobOrderId  String
+  status      SubmissionStatus @default(SHORTLISTED)
+  matchCount  Int
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  jobOrder  JobOrder  @relation(fields: [jobOrderId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateId, jobOrderId])
+  @@index([tenantId])
+  @@map("submissions")
+}
+
+enum SubmissionStatus {
+  SHORTLISTED
+  SUBMITTED_TO_CLIENT
+  INTERVIEWING
+  OFFERED
+  REJECTED
+  HIRED
+}
