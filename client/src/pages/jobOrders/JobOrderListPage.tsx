@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FiPlus, FiEye, FiEdit2, FiTrash2 } from "react-icons/fi";
 import {
   useGetJobOrdersQuery,
+  useGetJobOrderSummaryQuery,
   useDeleteJobOrderMutation,
   JobOrderListParams,
 } from "../../api/jobOrdersApi";
@@ -13,6 +14,7 @@ import { SearchInput } from "../../components/ui/SearchInput";
 import { SortSelect } from "../../components/ui/SortSelect";
 import { Pagination } from "../../components/ui/Pagination";
 import { Button } from "../../components/ui/Button";
+import { SummaryCard } from "../../components/ui/SummaryCard";
 import { SkillChips } from "../../components/ui/SkillChips";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { ActionMenu } from "../../components/ui/ActionMenu";
@@ -42,6 +44,7 @@ export function JobOrderListPage() {
     tenantId ? { page, pageSize: PAGE_SIZE, search: debouncedSearch || undefined, sortBy, sortDir } : undefined,
     { skip: !tenantId }
   );
+  const { data: summary } = useGetJobOrderSummaryQuery(undefined, { skip: !tenantId });
   const [deleteJobOrder] = useDeleteJobOrderMutation();
 
   async function handleDelete(id: string, title: string) {
@@ -58,6 +61,12 @@ export function JobOrderListPage() {
           <FiPlus className="h-4 w-4" aria-hidden="true" />
           Create Job Order
         </Button>
+      }
+      summaryCards={
+        <>
+          <SummaryCard label="Total Job Orders" value={summary?.total ?? "–"} />
+          <SummaryCard label="Open Positions" value={summary?.openCount ?? "–"} />
+        </>
       }
       toolbar={
         <>

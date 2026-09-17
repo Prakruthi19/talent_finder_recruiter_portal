@@ -16,6 +16,12 @@ export const submissionController = {
     res.json(result);
   },
 
+  async summary(req: Request, res: Response) {
+    const tenantId = requireTenantId(req);
+    const result = await submissionService.summary(tenantId);
+    res.json(result);
+  },
+
   async shortlist(req: Request, res: Response) {
     const tenantId = requireTenantId(req);
     const { candidateId } = shortlistCandidateSchema.parse(req.body);

@@ -10,6 +10,11 @@ export interface SubmissionListParams {
   sortDir?: "asc" | "desc";
 }
 
+export interface SubmissionSummary {
+  total: number;
+  shortlistedCount: number;
+}
+
 export const submissionsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     /**
@@ -28,7 +33,12 @@ export const submissionsApi = baseApi.injectEndpoints({
             ]
           : [{ type: "Submission" as const, id: "LIST" }],
     }),
+    /** GET /api/submissions/summary -> submission.controller.summary -> submission.service.summary (2 Prisma counts, tenant-scoped) */
+    getSubmissionSummary: builder.query<SubmissionSummary, void>({
+      query: () => "/submissions/summary",
+      providesTags: [{ type: "Submission", id: "SUMMARY" }],
+    }),
   }),
 });
 
-export const { useGetSubmissionsQuery } = submissionsApi;
+export const { useGetSubmissionsQuery, useGetSubmissionSummaryQuery } = submissionsApi;

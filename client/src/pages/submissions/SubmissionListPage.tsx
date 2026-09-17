@@ -1,12 +1,17 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useGetSubmissionsQuery, SubmissionListParams } from "../../api/submissionsApi";
+import {
+  useGetSubmissionsQuery,
+  useGetSubmissionSummaryQuery,
+  SubmissionListParams,
+} from "../../api/submissionsApi";
 import { useAppSelector } from "../../store/hooks";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { ListPageLayout } from "../../components/ui/ListPageLayout";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { SortSelect } from "../../components/ui/SortSelect";
 import { Pagination } from "../../components/ui/Pagination";
+import { SummaryCard } from "../../components/ui/SummaryCard";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { Table, THead, Th, TBody, Tr, Td } from "../../components/ui/Table";
 import { EmptyState, ErrorState, LoadingState } from "../../components/ui/PageStates";
@@ -32,11 +37,18 @@ export function SubmissionListPage() {
     tenantId ? { page, pageSize: PAGE_SIZE, search: debouncedSearch || undefined, sortBy, sortDir } : undefined,
     { skip: !tenantId }
   );
+  const { data: summary } = useGetSubmissionSummaryQuery(undefined, { skip: !tenantId });
 
   return (
     <ListPageLayout
       title="Submissions"
       showTenantSelect
+      summaryCards={
+        <>
+          <SummaryCard label="Total Submissions" value={summary?.total ?? "–"} />
+          <SummaryCard label="Shortlisted" value={summary?.shortlistedCount ?? "–"} />
+        </>
+      }
       toolbar={
         <>
           <SearchInput

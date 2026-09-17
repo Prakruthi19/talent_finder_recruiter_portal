@@ -8,3 +8,4 @@ export const submissionRoutes = Router();
 submissionRoutes.use(requireTenant);
 
 submissionRoutes.get("/", asyncHandler(submissionController.list));
+submissionRoutes.get("/summary", asyncHandler(submissionController.summary));

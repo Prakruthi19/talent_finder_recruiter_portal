@@ -77,4 +77,12 @@ export const submissionRepository = {
       ...submissionWithRelations,
     });
   },
+
+  count(tenantId: string) {
+    return prisma.submission.count({ where: { tenantId } });
+  },
+
+  countShortlisted(tenantId: string) {
+    return prisma.submission.count({ where: { tenantId, status: "SHORTLISTED" } });
+  },
 };

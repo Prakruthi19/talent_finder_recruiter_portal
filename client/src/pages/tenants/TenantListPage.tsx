@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiPlus } from "react-icons/fi";
-import { useGetTenantsQuery } from "../../api/tenantsApi";
+import { useGetTenantsQuery, useGetTenantSummaryQuery } from "../../api/tenantsApi";
 import { useAppDispatch } from "../../store/hooks";
 import { setSelectedTenant } from "../../store/tenantSlice";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
@@ -9,6 +9,7 @@ import { ListPageLayout } from "../../components/ui/ListPageLayout";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { Pagination } from "../../components/ui/Pagination";
 import { Button } from "../../components/ui/Button";
+import { SummaryCard } from "../../components/ui/SummaryCard";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { Table, THead, Th, TBody, Tr, Td } from "../../components/ui/Table";
 import { EmptyState, ErrorState, LoadingState } from "../../components/ui/PageStates";
@@ -27,6 +28,7 @@ export function TenantListPage() {
     pageSize: PAGE_SIZE,
     search: debouncedSearch || undefined,
   });
+  const { data: summary } = useGetTenantSummaryQuery();
 
   return (
     <ListPageLayout
@@ -36,6 +38,12 @@ export function TenantListPage() {
           <FiPlus className="h-4 w-4" aria-hidden="true" />
           Create Tenant
         </Button>
+      }
+      summaryCards={
+        <>
+          <SummaryCard label="Total Tenants" value={summary?.total ?? "–"} />
+          <SummaryCard label="Active Tenants" value={summary?.activeCount ?? "–"} />
+        </>
       }
       toolbar={
         <SearchInput
