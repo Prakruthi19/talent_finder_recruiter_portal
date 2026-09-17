@@ -20,6 +20,12 @@ export const jobOrderController = {
     res.json(result);
   },
 
+  async summary(req: Request, res: Response) {
+    const tenantId = requireTenantId(req);
+    const result = await jobOrderService.summary(tenantId);
+    res.json(result);
+  },
+
   async getById(req: Request, res: Response) {
     const tenantId = requireTenantId(req);
     const jobOrder = await jobOrderService.getById(tenantId, req.params.id as string);

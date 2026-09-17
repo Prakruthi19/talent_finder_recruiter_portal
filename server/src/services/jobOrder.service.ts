@@ -31,6 +31,14 @@ export const jobOrderService = {
     return jobOrderRepository.findMany(tenantId, params);
   },
 
+  async summary(tenantId: string) {
+    const [total, openCount] = await Promise.all([
+      jobOrderRepository.count(tenantId),
+      jobOrderRepository.countOpen(tenantId),
+    ]);
+    return { total, openCount };
+  },
+
   async getById(tenantId: string, id: string) {
     const jobOrder = await jobOrderRepository.findById(tenantId, id);
     if (!jobOrder) throw new NotFoundError("Job order");

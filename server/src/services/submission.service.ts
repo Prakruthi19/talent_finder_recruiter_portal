@@ -12,6 +12,14 @@ export const submissionService = {
     return submissionRepository.findMany(tenantId, params);
   },
 
+  async summary(tenantId: string) {
+    const [total, shortlistedCount] = await Promise.all([
+      submissionRepository.count(tenantId),
+      submissionRepository.countShortlisted(tenantId),
+    ]);
+    return { total, shortlistedCount };
+  },
+
   /**
    * Shortlisting a candidate for a job order creates the Submission record.
    * matchCount is recomputed server-side rather than trusted from the

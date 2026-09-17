@@ -8,6 +8,11 @@ export interface TenantListParams {
   search?: string;
 }
 
+export interface TenantSummary {
+  total: number;
+  activeCount: number;
+}
+
 export const tenantsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     /**
@@ -26,8 +31,13 @@ export const tenantsApi = baseApi.injectEndpoints({
     /** useCreateTenantMutation() -> POST /api/tenants -> tenant.controller.create -> tenant.service.create (checks name uniqueness) -> tenant.repository.create (Prisma) */
     createTenant: builder.mutation<Tenant, { name: string }>({
       query: (body) => ({ url: "/tenants", method: "POST", body }),
-      invalidatesTags: ["Tenant"],
+      invalidatesTags: ["Tenant", { type: "Tenant", id: "SUMMARY" }],
+    }),
+    /** GET /api/tenants/summary -> tenant.controller.summary -> tenant.service.summary (2 Prisma counts) */
+    getTenantSummary: builder.query<TenantSummary, void>({
+      query: () => "/tenants/summary",
+      providesTags: [{ type: "Tenant", id: "SUMMARY" }],
     }),
   }),
 });
-export const { useGetTenantsQuery, useCreateTenantMutation } = tenantsApi;
+export const { useGetTenantsQuery, useCreateTenantMutation, useGetTenantSummaryQuery } = tenantsApi;

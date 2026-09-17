@@ -157,4 +157,12 @@ export const jobOrderRepository = {
       include: { skills: { include: { skill: true } } },
     });
   },
+
+  count(tenantId: string) {
+    return prisma.jobOrder.count({ where: { tenantId } });
+  },
+
+  countOpen(tenantId: string) {
+    return prisma.jobOrder.count({ where: { tenantId, status: "OPEN" } });
+  },
 };

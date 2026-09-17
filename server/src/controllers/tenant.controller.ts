@@ -14,4 +14,9 @@ export const tenantController = {
     const tenant = await tenantService.create(body);
     res.status(201).json(tenant);
   },
+
+  async summary(_req: Request, res: Response) {
+    const result = await tenantService.summary();
+    res.json(result);
+  },
 };

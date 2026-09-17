@@ -36,4 +36,12 @@ export const tenantRepository = {
   create(data: { name: string }) {
     return prisma.tenant.create({ data });
   },
+
+  count() {
+    return prisma.tenant.count();
+  },
+
+  countActive() {
+    return prisma.tenant.count({ where: { status: "ACTIVE" } });
+  },
 };

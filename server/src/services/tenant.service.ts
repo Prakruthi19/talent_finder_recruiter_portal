@@ -17,4 +17,12 @@ export const tenantService = {
     if (existing) throw new ConflictError(`Tenant "${data.name}" already exists`);
     return tenantRepository.create(data);
   },
+
+  async summary() {
+    const [total, activeCount] = await Promise.all([
+      tenantRepository.count(),
+      tenantRepository.countActive(),
+    ]);
+    return { total, activeCount };
+  },
 };

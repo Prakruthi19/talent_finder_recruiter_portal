@@ -9,6 +9,7 @@ export const jobOrderRoutes = Router();
 jobOrderRoutes.use(requireTenant);
 
 jobOrderRoutes.get("/", asyncHandler(jobOrderController.list));
+jobOrderRoutes.get("/summary", asyncHandler(jobOrderController.summary));
 jobOrderRoutes.get("/:id", asyncHandler(jobOrderController.getById));
 jobOrderRoutes.post("/", asyncHandler(jobOrderController.create));
 jobOrderRoutes.patch("/:id", asyncHandler(jobOrderController.update));

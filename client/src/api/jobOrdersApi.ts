@@ -29,6 +29,11 @@ export interface UpdateJobOrderInput {
   skills?: string[];
 }
 
+export interface JobOrderSummary {
+  total: number;
+  openCount: number;
+}
+
 export const jobOrdersApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getJobOrders: builder.query<PageResult<JobOrder>, JobOrderListParams | void>({
@@ -61,19 +66,25 @@ export const jobOrdersApi = baseApi.injectEndpoints({
     }),
     createJobOrder: builder.mutation<JobOrder, CreateJobOrderInput>({
       query: (body) => ({ url: "/job-orders", method: "POST", body }),
-      invalidatesTags: [{ type: "JobOrder", id: "LIST" }],
+      invalidatesTags: [{ type: "JobOrder", id: "LIST" }, { type: "JobOrder", id: "SUMMARY" }],
     }),
     updateJobOrder: builder.mutation<JobOrder, { id: string; body: UpdateJobOrderInput }>({
       query: ({ id, body }) => ({ url: `/job-orders/${id}`, method: "PATCH", body }),
       invalidatesTags: (_result, _error, { id }) => [
         { type: "JobOrder", id },
         { type: "JobOrder", id: "LIST" },
+        { type: "JobOrder", id: "SUMMARY" },
         { type: "JobOrderMatches", id },
       ],
     }),
     deleteJobOrder: builder.mutation<void, string>({
       query: (id) => ({ url: `/job-orders/${id}`, method: "DELETE" }),
-      invalidatesTags: [{ type: "JobOrder", id: "LIST" }],
+      invalidatesTags: [{ type: "JobOrder", id: "LIST" }, { type: "JobOrder", id: "SUMMARY" }],
+    }),
+    /** GET /api/job-orders/summary -> jobOrder.controller.summary -> jobOrder.service.summary (2 Prisma counts, tenant-scoped) */
+    getJobOrderSummary: builder.query<JobOrderSummary, void>({
+      query: () => "/job-orders/summary",
+      providesTags: [{ type: "JobOrder", id: "SUMMARY" }],
     }),
     /**
      * useShortlistCandidateMutation() -> POST /api/job-orders/:jobOrderId/shortlist { candidateId }
@@ -92,6 +103,7 @@ export const jobOrdersApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { jobOrderId, candidateId }) => [
         { type: "JobOrderMatches", id: jobOrderId },
         { type: "Submission", id: "LIST" },
+        { type: "Submission", id: "SUMMARY" },
         { type: "Candidate", id: candidateId },
       ],
     }),
@@ -106,4 +118,5 @@ export const {
   useUpdateJobOrderMutation,
   useDeleteJobOrderMutation,
   useShortlistCandidateMutation,
+  useGetJobOrderSummaryQuery,
 } = jobOrdersApi;
