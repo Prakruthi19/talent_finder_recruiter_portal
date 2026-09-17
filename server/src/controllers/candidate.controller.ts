@@ -1,11 +1,14 @@
+import fs from "node:fs/promises";
 import { Request, Response } from "express";
 import { candidateService } from "../services/candidate.service";
+import { cvParsingService } from "../services/cvParsing.service";
 import {
   candidateListQuerySchema,
   createCandidateSchema,
   updateCandidateSchema,
 } from "../schemas/candidate.schema";
-import { AppError, NotFoundError } from "../lib/errors";
+import { AppError, NotFoundError, ValidationError } from "../lib/errors";
+import { verifyCvFileType } from "../lib/fileTypeCheck";
 
 function requireTenantId(req: Request): string {
   if (!req.tenantId) throw new AppError("Tenant context missing", 400);
@@ -36,6 +39,19 @@ export const candidateController = {
     const tenantId = requireTenantId(req);
     const body = createCandidateSchema.parse(req.body);
     const file = req.file;
+
+    if (file) {
+      // multer's fileFilter only trusted the client-sent Content-Type;
+      // verify the bytes actually on disk before this file becomes a
+      // permanent candidate record.
+      const buffer = await fs.readFile(file.path);
+      try {
+        await verifyCvFileType(buffer);
+      } catch (err) {
+        await fs.unlink(file.path).catch(() => undefined);
+        throw err;
+      }
+    }
 
     const candidate = await candidateService.create({
       tenantId,
@@ -70,5 +86,19 @@ export const candidateController = {
     const candidate = await candidateService.getById(tenantId, req.params.id as string);
     if (!candidate.cvPath) throw new NotFoundError("CV");
     res.download(candidate.cvPath, candidate.cvOriginalName ?? "cv");
+  },
+
+  /**
+   * CV auto-fill bonus (spec 2.2). Parse-only — doesn't create or persist
+   * anything; the frontend uses the returned fields to pre-populate the
+   * Add Candidate form, which the recruiter still reviews before saving.
+   */
+  async parseCv(req: Request, res: Response) {
+    requireTenantId(req);
+    const file = req.file;
+    if (!file) throw new ValidationError({ cv: "No file uploaded" });
+
+    const result = await cvParsingService.parse(file.buffer);
+    res.json(result);
   },
 };

@@ -1,6 +1,6 @@
 import { baseApi } from "./baseApi";
 import { toQueryString } from "./queryParams";
-import type { Candidate, CandidateWithSubmissions, PageResult } from "../types";
+import type { Candidate, CandidateWithSubmissions, CvParseResult, PageResult } from "../types";
 
 export interface CandidateListParams {
   page?: number;
@@ -102,6 +102,23 @@ export const candidatesApi = baseApi.injectEndpoints({
         { type: "Candidate", id: "SUMMARY" },
       ],
     }),
+    /**
+     * CV auto-fill bonus. useParseCvMutation() -> POST /api/candidates/parse-cv (multipart, parse-only,
+     * nothing persisted) -> candidate.controller.parseCv -> cvParsing.service.ts
+     *   -> lib/fileTypeCheck.ts (real byte sniffing, not just the claimed Content-Type)
+     *   -> lib/cvTextExtractor.ts (pdf-parse / mammoth)
+     *   -> lib/cvFieldExtractor.ts (regex + compromise NLP + fuse.js fuzzy skill matching)
+     * Returns { readable: false } for an unreadable file (e.g. a scanned CV) rather than erroring —
+     * the caller falls back to manual entry, per the spec's CV Upload acceptance criteria.
+     * Not cached — no tag invalidation needed.
+     */
+    parseCv: builder.mutation<CvParseResult, File>({
+      query: (file) => {
+        const formData = new FormData();
+        formData.set("cv", file);
+        return { url: "/candidates/parse-cv", method: "POST", body: formData };
+      },
+    }),
   }),
 });
 
@@ -112,4 +129,5 @@ export const {
   useCreateCandidateMutation,
   useUpdateCandidateMutation,
   useDeleteCandidateMutation,
+  useParseCvMutation,
 } = candidatesApi;
