@@ -17,3 +17,4 @@ jobOrderRoutes.delete("/:id", asyncHandler(jobOrderController.remove));
 
 jobOrderRoutes.get("/:id/matches", asyncHandler(jobOrderController.matchingCandidates));
 jobOrderRoutes.post("/:jobOrderId/shortlist", asyncHandler(submissionController.shortlist));
+jobOrderRoutes.post("/:id/insight", asyncHandler(jobOrderController.generateInsight));

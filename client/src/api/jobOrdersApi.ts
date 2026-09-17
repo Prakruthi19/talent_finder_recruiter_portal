@@ -107,6 +107,23 @@ export const jobOrdersApi = baseApi.injectEndpoints({
         { type: "Candidate", id: candidateId },
       ],
     }),
+    /**
+     * Optional AI bonus feature. useGenerateMatchInsightMutation() ->
+     * POST /api/job-orders/:id/insight { candidateId } -> jobOrder.controller.generateInsight
+     *   -> aiInsight.service.ts -> lib/aiProvider.ts (OpenAI-compatible chat
+     *      completions call). Returns 503 with a clear message if AI_API_KEY
+     *      isn't set on the server — not cached, no tag invalidation needed.
+     */
+    generateMatchInsight: builder.mutation<
+      { insight: string },
+      { jobOrderId: string; candidateId: string }
+    >({
+      query: ({ jobOrderId, candidateId }) => ({
+        url: `/job-orders/${jobOrderId}/insight`,
+        method: "POST",
+        body: { candidateId },
+      }),
+    }),
   }),
 });
 
@@ -119,4 +136,5 @@ export const {
   useDeleteJobOrderMutation,
   useShortlistCandidateMutation,
   useGetJobOrderSummaryQuery,
+  useGenerateMatchInsightMutation,
 } = jobOrdersApi;
