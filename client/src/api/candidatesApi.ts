@@ -3,6 +3,12 @@ import { toQueryString } from "./queryParams";
 import type { Candidate, CandidateWithSubmissions, CvParseResult, PageResult } from "../types";
 
 export interface CandidateListParams {
+  // Included so RTK Query's cache key changes per tenant — the actual
+  // scoping happens server-side via the X-Tenant-Id header (see
+  // baseApi.ts), which RTK Query's cache never looks at. Without this,
+  // switching tenants while page/search/sort stay at their defaults
+  // silently serves the *previous* tenant's cached list.
+  tenantId: string;
   page?: number;
   pageSize?: number;
   search?: string;
@@ -48,8 +54,8 @@ export const candidatesApi = baseApi.injectEndpoints({
      *   -> candidate.service.list -> candidate.repository.findMany (Prisma) -> Postgres `candidates`
      * Returns PageResult<Candidate>.
      */
-    getCandidates: builder.query<PageResult<Candidate>, CandidateListParams | void>({
-      query: (params) => `/candidates${toQueryString({ ...params })}`,
+    getCandidates: builder.query<PageResult<Candidate>, CandidateListParams>({
+      query: ({ tenantId: _tenantId, ...params }) => `/candidates${toQueryString({ ...params })}`,
       providesTags: (result) =>
         result
           ? [
@@ -59,7 +65,7 @@ export const candidatesApi = baseApi.injectEndpoints({
           : [{ type: "Candidate" as const, id: "LIST" }],
     }),
     /** GET /api/candidates/summary -> candidate.controller.summary -> candidate.service.summary (2 Prisma counts) */
-    getCandidateSummary: builder.query<CandidateSummary, void>({
+    getCandidateSummary: builder.query<CandidateSummary, { tenantId: string }>({
       query: () => "/candidates/summary",
       providesTags: [{ type: "Candidate", id: "SUMMARY" }],
     }),

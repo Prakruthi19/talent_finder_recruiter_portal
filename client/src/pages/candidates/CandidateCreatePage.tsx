@@ -43,15 +43,14 @@ export function CandidateCreatePage() {
         return;
       }
 
+      // A new file replaces the previous file's auto-fill outright — if we
+      // only filled empty fields, a second (correct) CV could never
+      // overwrite values a first (wrong) CV already populated.
       const fields = result.fields ?? { skills: [] };
-      if (fields.fullName) setFullName((prev) => prev || fields.fullName!);
-      if (fields.location) setLocation((prev) => prev || fields.location!);
-      if (fields.experienceYears !== undefined) {
-        setExperienceYears((prev) => prev || String(fields.experienceYears));
-      }
-      if (fields.skills.length > 0) {
-        setSkills((prev) => Array.from(new Set([...prev, ...fields.skills])));
-      }
+      if (fields.fullName) setFullName(fields.fullName);
+      if (fields.location) setLocation(fields.location);
+      if (fields.experienceYears !== undefined) setExperienceYears(String(fields.experienceYears));
+      if (fields.skills.length > 0) setSkills(fields.skills);
       setCvNotice("Fields auto-filled from the CV where detected — review and edit before saving.");
     } catch {
       setCvNotice("Couldn't parse this file — please fill in the fields manually.");
@@ -104,7 +103,7 @@ export function CandidateCreatePage() {
             accept=".pdf,.docx"
             onChange={handleFileChange}
             disabled={isParsing}
-            className="text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100 disabled:opacity-60"
+            className="w-full min-w-0 text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100 disabled:opacity-60"
           />
           {isParsing && <p className="text-xs text-slate-500">Reading CV and detecting fields...</p>}
           {cvNotice && <p className="text-xs text-amber-600">{cvNotice}</p>}

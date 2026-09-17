@@ -41,10 +41,10 @@ export function CandidateListPage() {
   const [sortBy, sortDir] = sort.split(":") as [CandidateListParams["sortBy"], CandidateListParams["sortDir"]];
 
   const { data, isLoading, isError } = useGetCandidatesQuery(
-    tenantId ? { page, pageSize: PAGE_SIZE, search: debouncedSearch || undefined, sortBy, sortDir } : undefined,
+    { tenantId: tenantId ?? "", page, pageSize: PAGE_SIZE, search: debouncedSearch || undefined, sortBy, sortDir },
     { skip: !tenantId }
   );
-  const { data: summary } = useGetCandidateSummaryQuery(undefined, { skip: !tenantId });
+  const { data: summary } = useGetCandidateSummaryQuery({ tenantId: tenantId ?? "" }, { skip: !tenantId });
   const [deleteCandidate] = useDeleteCandidateMutation();
 
   async function handleDelete(id: string, name: string) {
@@ -99,25 +99,28 @@ export function CandidateListPage() {
         <Table>
           <THead>
             <Th>Name</Th>
-            <Th>Location</Th>
-            <Th>Exp</Th>
-            <Th>Skills</Th>
-            <Th>Actions</Th>
+            <Th className="hidden sm:table-cell">Location</Th>
+            <Th className="hidden sm:table-cell">Exp</Th>
+            <Th className="hidden sm:table-cell">Skills</Th>
+            <Th className="w-12 sm:w-14">Actions</Th>
           </THead>
           <TBody>
             {data.items.map((c) => (
               <Tr key={c.id}>
                 <Td className="font-medium text-slate-900">
                   <button
-                    className="hover:text-brand-700 hover:underline"
+                    className="block max-w-[44vw] truncate hover:text-brand-700 hover:underline sm:max-w-none"
                     onClick={() => navigate(`/candidates/${c.id}`)}
                   >
                     {c.fullName}
                   </button>
+                  <div className="mt-0.5 max-w-[44vw] truncate text-xs font-normal text-slate-500 sm:hidden">
+                    {c.location || "—"} · {formatExperience(c.experienceYears)}
+                  </div>
                 </Td>
-                <Td>{c.location || "—"}</Td>
-                <Td>{formatExperience(c.experienceYears)}</Td>
-                <Td className="max-w-xs">
+                <Td className="hidden sm:table-cell">{c.location || "—"}</Td>
+                <Td className="hidden sm:table-cell">{formatExperience(c.experienceYears)}</Td>
+                <Td className="hidden max-w-xs sm:table-cell">
                   <SkillChips skills={c.skills.map((s) => s.skill.name)} max={3} />
                 </Td>
                 <Td>

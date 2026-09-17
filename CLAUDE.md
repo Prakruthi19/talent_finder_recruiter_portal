@@ -37,9 +37,14 @@ a one-line CRUD op — the assignment is graded on this separation.
 - Every tenant-scoped table (`Candidate`, `JobOrder`, `Submission`) has a `tenantId` FK.
 - Every repository query for these tables **must** filter by `tenantId`. There is no shared/global
   view across tenants anywhere in the app.
-- The frontend keeps the selected tenant in Redux (persisted to `localStorage`) and sends it as
-  `X-Tenant-Id` header (or query param, whichever we land on) — check `server/src/middleware` for
-  the current convention before adding a new endpoint.
+- The frontend keeps the selected tenant in Redux (persisted to `localStorage`) and sends it on every
+  request as an `X-Tenant-Id` header (`client/src/api/baseApi.ts`'s `prepareHeaders`), read server-side
+  by `server/src/middleware/tenantContext.ts`.
+- **RTK Query gotcha**: the cache key for a query is derived only from its arguments, never from
+  headers. Every tenant-scoped list/summary query must include `tenantId` in its own arguments (see
+  `CandidateListParams`, `JobOrderListParams`, `SubmissionListParams` and their `*Summary` siblings) —
+  otherwise switching tenants while page/search/sort stay at their defaults silently serves the
+  previous tenant's cached data. Found and fixed once already; don't reintroduce it on a new endpoint.
 
 ## Skill Matching
 
@@ -91,6 +96,29 @@ tests target the **service layer** with repositories mocked via `vi.mock` — th
 business logic worth testing actually lives, per the layering rule above; controllers/routes are
 thin enough not to need their own tests. Frontend tests cover pure utility functions only
 (`lib/format.ts`, `lib/skillColor.ts`, `api/queryParams.ts`) — no component/RTL tests yet.
+
+## Assumptions (for interview discussion)
+
+The spec explicitly invites documented assumptions for gaps/ambiguities. Consolidated list:
+
+- **No auth/login** — no login user story exists in the spec; the app runs as a single implicit
+  recruiter session.
+- **Tenant = sourcing channel** (LinkedIn/Monster/Naukri), not a company name — matches the spec's own
+  example (`Tenant Name * (required, e.g. LinkedIn)`) and the entity diagram. Distinct from Job Order's
+  `Client Name`, which is the actual hiring company *within* a tenant.
+- **Candidate.fullName and JobOrder.title are required**, even though the spec's own asterisk
+  placement only marks *other* fields required on those two forms (2.2 asterisks Total Experience and
+  Skills only; 3.2 asterisks Location, Min Experience, Number of Openings and Required Skills only). A
+  nameless candidate or titleless job order isn't a usable record, so both are validated as required
+  server-side (`createCandidateSchema`, `createJobOrderSchema`).
+- **Multi-tenancy is shared-schema, not siloed** — one Postgres schema, every tenant-scoped table has a
+  `tenantId` FK, every repository query filters by it. No per-tenant schema/database.
+- **CV-unreadable threshold** is a heuristic: less than 40 characters of extracted text counts as
+  "nearly empty" per the appendix's guidance — not a number the spec itself specifies.
+- **Responsive layout uses Tailwind's responsive utilities throughout** (sidebar collapses, grids
+  reflow) but hasn't been manually verified pixel-by-pixel on a real narrow viewport in this session —
+  no browser automation tool was available to click through it. Worth a manual pass before treating it
+  as fully confirmed.
 
 ## Performance Notes
 

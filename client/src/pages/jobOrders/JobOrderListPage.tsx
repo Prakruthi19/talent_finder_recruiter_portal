@@ -41,10 +41,10 @@ export function JobOrderListPage() {
   const [sortBy, sortDir] = sort.split(":") as [JobOrderListParams["sortBy"], JobOrderListParams["sortDir"]];
 
   const { data, isLoading, isError } = useGetJobOrdersQuery(
-    tenantId ? { page, pageSize: PAGE_SIZE, search: debouncedSearch || undefined, sortBy, sortDir } : undefined,
+    { tenantId: tenantId ?? "", page, pageSize: PAGE_SIZE, search: debouncedSearch || undefined, sortBy, sortDir },
     { skip: !tenantId }
   );
-  const { data: summary } = useGetJobOrderSummaryQuery(undefined, { skip: !tenantId });
+  const { data: summary } = useGetJobOrderSummaryQuery({ tenantId: tenantId ?? "" }, { skip: !tenantId });
   const [deleteJobOrder] = useDeleteJobOrderMutation();
 
   async function handleDelete(id: string, title: string) {
@@ -99,33 +99,40 @@ export function JobOrderListPage() {
         <Table>
           <THead>
             <Th>Job Title</Th>
-            <Th>Client</Th>
-            <Th>Location</Th>
-            <Th>Min Exp</Th>
-            <Th>Openings</Th>
-            <Th>Required Skills</Th>
-            <Th>Status</Th>
-            <Th>Actions</Th>
+            <Th className="hidden sm:table-cell">Client</Th>
+            <Th className="hidden sm:table-cell">Location</Th>
+            <Th className="hidden sm:table-cell">Min Exp</Th>
+            <Th className="hidden sm:table-cell">Openings</Th>
+            <Th className="hidden sm:table-cell">Required Skills</Th>
+            <Th className="hidden sm:table-cell">Status</Th>
+            <Th className="w-12 sm:w-14">Actions</Th>
           </THead>
           <TBody>
             {data.items.map((j) => (
               <Tr key={j.id}>
                 <Td className="font-medium text-slate-900">
                   <button
-                    className="hover:text-brand-700 hover:underline"
+                    className="block max-w-[44vw] truncate hover:text-brand-700 hover:underline sm:max-w-none"
                     onClick={() => navigate(`/job-orders/${j.id}`)}
                   >
                     {j.title}
                   </button>
+                  <div className="mt-0.5 flex max-w-[44vw] flex-wrap items-center gap-2 text-xs font-normal text-slate-500 sm:hidden">
+                    <span className="truncate">
+                      {j.clientName ? `${j.clientName} · ` : ""}
+                      {j.location}
+                    </span>
+                    <StatusBadge status={j.status} />
+                  </div>
                 </Td>
-                <Td>{j.clientName || "—"}</Td>
-                <Td>{j.location}</Td>
-                <Td>{formatExperience(j.minExperience)}</Td>
-                <Td>{j.numberOfOpenings}</Td>
-                <Td className="max-w-xs">
+                <Td className="hidden sm:table-cell">{j.clientName || "—"}</Td>
+                <Td className="hidden sm:table-cell">{j.location}</Td>
+                <Td className="hidden sm:table-cell">{formatExperience(j.minExperience)}</Td>
+                <Td className="hidden sm:table-cell">{j.numberOfOpenings}</Td>
+                <Td className="hidden max-w-xs sm:table-cell">
                   <SkillChips skills={j.requiredSkills.map((s) => s.skill.name)} max={3} />
                 </Td>
-                <Td>
+                <Td className="hidden sm:table-cell">
                   <StatusBadge status={j.status} />
                 </Td>
                 <Td>

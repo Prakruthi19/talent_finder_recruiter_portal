@@ -37,7 +37,7 @@ export function SkillsInput({ label, value, onChange, error, required }: Props) 
         {required && <span className="text-red-500"> *</span>}
       </label>
       <div
-        className={`flex flex-wrap items-center gap-1.5 rounded-md border px-2 py-1.5 ${
+        className={`flex w-full min-w-0 flex-wrap items-center gap-1.5 rounded-md border px-2 py-1.5 ${
           error ? "border-red-400" : "border-slate-300 focus-within:border-brand-600 focus-within:ring-1 focus-within:ring-brand-600"
         }`}
       >
