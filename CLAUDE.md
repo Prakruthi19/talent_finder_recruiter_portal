@@ -74,7 +74,7 @@ a one-line CRUD op — the assignment is graded on this separation.
   alone.
 - AI feature (bonus): `POST /api/job-orders/:id/insight { candidateId }` generates a short natural-
   language fit assessment via `server/src/lib/aiProvider.ts` (any OpenAI-compatible chat completions
-  endpoint — Groq free tier by default). Purely additive — the actual skill-match ranking never
+  endpoint — OpenAI by default, model configurable via `AI_MODEL`). Purely additive — the actual skill-match ranking never
   depends on it. Returns 503 with a clear message if `AI_API_KEY` isn't set; don't make any other
   feature depend on the AI provider being configured.
 
@@ -88,6 +88,15 @@ cd client && npm run dev      # frontend
 
 Seed data must produce enough tenants/candidates/job orders that skill-match ranking is visibly
 meaningful on first run (spec requirement — don't skip this).
+
+## Deployment
+
+Render Blueprint at `render.yaml` (repo root) — see `DEPLOY.md` for click-by-click steps. Three
+resources: `talent-finder-api` (Express), `talent-finder-client` (static Vite build),
+`talent-finder-db` (managed Postgres). `AI_API_KEY` is deliberately excluded from the blueprint
+(`sync: false`) — set it in the Render dashboard, never commit it. Seeding is manual-only in
+production (`prisma/seed.ts` is destructive — wipes every table before reseeding) — do not wire it
+into a startCommand or any auto-run path.
 
 ## Tests
 

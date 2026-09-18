@@ -11,8 +11,9 @@ interface ChatCompletionResponse {
 
 /**
  * Thin wrapper around any OpenAI-compatible /chat/completions endpoint
- * (Groq, OpenRouter, a local Ollama server, ...). Provider is chosen purely
- * by env vars so swapping providers never touches calling code.
+ * (OpenAI itself, Groq, OpenRouter, a local Ollama server, ...). Provider
+ * is chosen purely by env vars so swapping providers never touches calling
+ * code.
  */
 export async function generateChatCompletion(messages: ChatMessage[]): Promise<string> {
   const apiKey = process.env.AI_API_KEY;
@@ -22,8 +23,8 @@ export async function generateChatCompletion(messages: ChatMessage[]): Promise<s
     );
   }
 
-  const baseUrl = process.env.AI_API_BASE_URL ?? "https://api.groq.com/openai/v1";
-  const model = process.env.AI_MODEL ?? "llama-3.1-8b-instant";
+  const baseUrl = process.env.AI_API_BASE_URL ?? "https://api.openai.com/v1";
+  const model = process.env.AI_MODEL ?? "gpt-4o-mini";
 
   let response: Response;
   try {
