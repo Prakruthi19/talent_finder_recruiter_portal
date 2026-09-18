@@ -10,7 +10,13 @@ services:
     runtime: node
     plan: free
     rootDir: server
-    buildCommand: npm install && npx prisma generate && npm run build
+    # --include=dev is deliberate: NODE_ENV=production (set by Render for
+    # web services regardless of what's declared here) makes a plain
+    # `npm install` skip devDependencies — which silently drops typescript,
+    # @types/*, and prisma before the build even runs. Build and start share
+    # one environment on this plan (no separate prune-after-build stage), so
+    # devDependencies must survive through both.
+    buildCommand: npm install --include=dev && npx prisma generate && npm run build
     startCommand: npx prisma migrate deploy && npm start
     healthCheckPath: /health
     envVars:
@@ -20,8 +26,6 @@ services:
           property: connectionString
       - key: CLIENT_ORIGIN
         value: https://talent-finder-client.onrender.com
-      - key: NODE_ENV
-        value: production
       # Optional AI Insight feature — left blank on purpose. Set the real
       # value in the Render dashboard (Environment tab) after first deploy;
       # never commit it here. Leaving it unset just disables that one bonus
@@ -37,7 +41,7 @@ services:
     name: talent-finder-client
     runtime: static
     rootDir: client
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     staticPublishPath: dist
     envVars:
       - key: VITE_API_BASE_URL
