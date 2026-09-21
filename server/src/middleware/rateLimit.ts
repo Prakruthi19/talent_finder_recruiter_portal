@@ -1,3 +1,4 @@
+import type { RequestHandler } from "express";
 import { ipKeyGenerator, rateLimit } from "express-rate-limit";
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
@@ -25,3 +26,7 @@ export const uploadLimiter = limiter(30, "Too many CV uploads. Please try again 
 
 /** Login is keyed by IP (no user yet); slows password guessing. */
 export const loginLimiter = limiter(10, "Too many login attempts. Please try again in a few minutes.");
+
+/** For endpoints where AI is opt-in per request (?ai=true): only those calls spend the AI budget. */
+export const aiLimiterIfRequested: RequestHandler = (req, res, next) =>
+  req.query.ai === "true" ? aiLimiter(req, res, next) : next();

@@ -127,10 +127,23 @@ export interface ParsedCandidateFields {
   phone?: string;
   location?: string;
   experienceYears?: number;
+  /** Skills from the database that the CV mentions. */
   skills: string[];
+  /** Skills the CV lists that aren't in the database yet: offered as click-to-add suggestions. */
+  suggestedSkills: string[];
 }
+
+export type UnreadableReason = "empty" | "password_protected" | "corrupt";
 
 export interface CvParseResult {
   readable: boolean;
+  reason?: UnreadableReason;
   fields?: ParsedCandidateFields;
+  diagnostics?: { characters: number; letters: number; words: number; aiUsed: boolean };
+}
+
+/** Optional server features, so the UI only offers what can work. */
+export interface Features {
+  ai: boolean;
+  google: boolean;
 }

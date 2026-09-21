@@ -117,15 +117,16 @@ export const candidatesApi = baseApi.injectEndpoints({
      *   -> lib/fileTypeCheck.ts (real byte sniffing, not just the claimed Content-Type)
      *   -> lib/cvTextExtractor.ts (pdf-parse / mammoth)
      *   -> lib/cvFieldExtractor.ts (regex + compromise NLP + fuse.js fuzzy skill matching)
-     * Returns { readable: false } for an unreadable file (e.g. a scanned CV) rather than erroring —
-     * the caller falls back to manual entry, per the spec's CV Upload acceptance criteria.
+     * Returns { readable: false, reason } for an unreadable file (scanned, password-protected, damaged) rather than
+     * erroring; the caller falls back to manual entry, per the spec's CV Upload acceptance criteria.
      * Not cached — no tag invalidation needed.
      */
-    parseCv: builder.mutation<CvParseResult, File>({
-      query: (file) => {
+    parseCv: builder.mutation<CvParseResult, { file: File; ai?: boolean }>({
+      query: ({ file, ai }) => {
         const formData = new FormData();
         formData.set("cv", file);
-        return { url: "/candidates/parse-cv", method: "POST", body: formData };
+        // ai=true also sends the CV text to the AI provider, so it is only ever an explicit opt-in.
+        return { url: `/candidates/parse-cv${ai ? "?ai=true" : ""}`, method: "POST", body: formData };
       },
     }),
   }),

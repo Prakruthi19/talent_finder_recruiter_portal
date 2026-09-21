@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import { authRoutes } from "./routes/auth.routes";
+import { featuresController } from "./controllers/features.controller";
 import { tenantRoutes } from "./routes/tenant.routes";
 import { candidateRoutes } from "./routes/candidate.routes";
 import { jobOrderRoutes } from "./routes/jobOrder.routes";
@@ -36,6 +37,7 @@ export function createApp() {
 
   app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
+  app.get("/api/features", featuresController.get);
   app.use("/api/auth", authRoutes);
   app.use("/api/tenants", tenantRoutes);
   app.use("/api/candidates", candidateRoutes);

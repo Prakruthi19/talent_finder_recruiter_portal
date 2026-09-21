@@ -105,7 +105,8 @@ export const candidateController = {
     const file = req.file;
     if (!file) throw new ValidationError({ cv: "No file uploaded" });
 
-    const result = await cvParsingService.parse(file.buffer);
+    // AI refinement sends the CV text to the model, so it only happens when explicitly requested.
+    const result = await cvParsingService.parse(file.buffer, { useAi: req.query.ai === "true" });
     res.json(result);
   },
 };
