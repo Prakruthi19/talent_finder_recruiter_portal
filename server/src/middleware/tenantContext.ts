@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { AppError, UnauthorizedError } from "../lib/errors";
 import { requireMembership } from "../services/auth.service";
+import { runWithTenant } from "../lib/tenantScope";
 import { asyncHandler } from "./asyncHandler";
 
 declare global {
@@ -36,5 +37,7 @@ export const requireTenant = asyncHandler(async (req, _res, next) => {
 
   req.role = await requireMembership(req.user.id, tenantId);
   req.tenantId = tenantId;
-  next();
+  // From here on, everything this request awaits runs as this tenant: lib/prisma.ts tells
+  // Postgres, whose row-level security then refuses any other tenant's rows.
+  runWithTenant(tenantId, () => next());
 });

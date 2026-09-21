@@ -1,4 +1,5 @@
-import { prisma } from "../lib/prisma";
+import { Prisma } from "@prisma/client";
+import { prisma, scopedQueryRaw } from "../lib/prisma";
 
 export interface SkillGap {
   skill: string;
@@ -19,11 +20,12 @@ export interface RoleNeedingAttention {
 
 // All of these are raw SQL on purpose (like the matching query): they group and
 // join across tables in the database instead of looping in Node. They lean on
-// the skillId indexes on candidate_skills / job_order_required_skills.
+// the skillId indexes on candidate_skills / job_order_required_skills. They go
+// through scopedQueryRaw so row-level security applies to them like any query.
 export const dashboardRepository = {
   /** Skills that open roles need, scarcest first (fewest candidates per open role). */
   skillGaps(tenantId: string, limit = 8): Promise<SkillGap[]> {
-    return prisma.$queryRaw<SkillGap[]>`
+    return scopedQueryRaw<SkillGap[]>(Prisma.sql`
       WITH demand AS (
         SELECT r."skillId", COUNT(DISTINCT jo.id) AS demand
         FROM job_order_required_skills r
@@ -44,12 +46,12 @@ export const dashboardRepository = {
       LEFT JOIN supply sp ON sp."skillId" = d."skillId"
       ORDER BY COALESCE(sp.supply, 0)::float / d.demand ASC, d.demand DESC, s.name
       LIMIT ${limit}
-    `;
+    `);
   },
 
   /** Open roles with the fewest candidates who share any required skill. */
   rolesNeedingAttention(tenantId: string, limit = 5): Promise<RoleNeedingAttention[]> {
-    return prisma.$queryRaw<RoleNeedingAttention[]>`
+    return scopedQueryRaw<RoleNeedingAttention[]>(Prisma.sql`
       SELECT jo.id, jo.title, jo."numberOfOpenings"::int AS openings,
              COUNT(DISTINCT c.id)::int AS candidates,
              (SELECT COUNT(*) FROM submissions sub WHERE sub."jobOrderId" = jo.id)::int AS shortlisted
@@ -61,7 +63,7 @@ export const dashboardRepository = {
       GROUP BY jo.id
       ORDER BY candidates ASC, jo.title
       LIMIT ${limit}
-    `;
+    `);
   },
 
   async submissionsByStatus(tenantId: string) {
