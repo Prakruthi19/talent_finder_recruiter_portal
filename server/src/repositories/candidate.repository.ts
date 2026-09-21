@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { prisma } from "../lib/prisma";
+import { prisma, tenantTransaction } from "../lib/prisma";
 import { PageParams, PageResult, toSkip } from "./pagination";
 
 export type CandidateSortBy = "fullName" | "location" | "experienceYears" | "createdAt";
@@ -168,7 +168,8 @@ export const candidateRepository = {
   },
 
   async update(id: string, data: UpdateCandidateInput): Promise<CandidateWithSkills> {
-    return prisma.$transaction(async (tx) => {
+    // tenantTransaction, not prisma.$transaction: it carries the tenant context for row-level security.
+    return tenantTransaction(async (tx) => {
       if (data.skillIds) {
         await tx.candidateSkill.deleteMany({ where: { candidateId: id } });
       }

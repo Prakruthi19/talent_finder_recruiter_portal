@@ -13,7 +13,8 @@
     "seed": "tsx prisma/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "create-user": "tsx scripts/create-user.ts"
+    "create-user": "tsx scripts/create-user.ts",
+    "test:rls": "vitest run -c vitest.rls.config.mts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

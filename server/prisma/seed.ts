@@ -87,14 +87,13 @@ const CLIENTS = ["Acme Corp", "Globex", "Initech", "Umbrella Inc", "Stark Indust
 
 async function main() {
   console.log("Clearing existing data...");
-  await prisma.auditLog.deleteMany();
+  // The tenant-owned tables are protected by row-level security, which would make a
+  // deleteMany() with no tenant context delete nothing. TRUNCATE isn't row-filtered.
+  await prisma.$executeRawUnsafe(
+    "TRUNCATE TABLE audit_logs, submissions, job_order_required_skills, candidate_skills, job_orders, candidates"
+  );
   await prisma.membership.deleteMany();
   await prisma.user.deleteMany();
-  await prisma.submission.deleteMany();
-  await prisma.jobOrderRequiredSkill.deleteMany();
-  await prisma.candidateSkill.deleteMany();
-  await prisma.jobOrder.deleteMany();
-  await prisma.candidate.deleteMany();
   await prisma.skill.deleteMany();
   await prisma.tenant.deleteMany();
 
@@ -109,6 +108,10 @@ async function main() {
     console.log(`Seeding tenant: ${tenantName}`);
     const tenant = await prisma.tenant.create({ data: { name: tenantName } });
 
+    // Tenant-owned rows are protected by row-level security: create them AS this tenant.
+    await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT set_config('app.current_tenant', ${tenant.id}, true)`;
+
     const candidateCount = randomInt(10, 14);
     const candidateSkillSets: string[][] = [];
 
@@ -117,7 +120,7 @@ async function main() {
       const candidateSkills = pickRandom(SKILL_POOL, skillCount);
       candidateSkillSets.push(candidateSkills);
 
-      await prisma.candidate.create({
+      await tx.candidate.create({
         data: {
           tenantId: tenant.id,
           fullName: randomName(),
@@ -136,7 +139,7 @@ async function main() {
     const jobOrderTemplates = pickRandom(JOB_TITLES, jobOrderCount);
 
     for (const template of jobOrderTemplates) {
-      await prisma.jobOrder.create({
+      await tx.jobOrder.create({
         data: {
           tenantId: tenant.id,
           title: template.title,
@@ -150,6 +153,7 @@ async function main() {
         },
       });
     }
+    }, { timeout: 120_000 });
   }
 
   // Demo logins (local/demo data only; real accounts come from `npm run create-user`).

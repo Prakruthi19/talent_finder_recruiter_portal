@@ -36,10 +36,20 @@ a one-line CRUD op — the assignment is graded on this separation.
 
 - Every tenant-scoped table (`Candidate`, `JobOrder`, `Submission`) has a `tenantId` FK.
 - Every repository query for these tables **must** filter by `tenantId`. There is no shared/global
-  view across tenants anywhere in the app.
+  view across tenants anywhere in the app. That is the *first* lock; row-level security is the second.
+- **Row-level security (Postgres RLS) is the second lock.** The database itself refuses another
+  tenant's rows even if a query forgets its `where tenantId` (migration `*_row_level_security`,
+  `server/src/lib/prisma.ts`, full notes in `docs/row-level-security.md`). Rules that keep it working:
+  raw SQL goes through `scopedQueryRaw`, interactive transactions through `tenantTransaction` (never
+  `prisma.$queryRaw` / `prisma.$transaction`); a new tenant-owned table needs a policy in a migration
+  *and* an entry in `RLS_MODELS`/`RLS_TABLES`; `npm run test:rls` proves it against a real database.
+  The local Docker database user is a superuser, which bypasses RLS: the app avoids that by running
+  each query as the `talentfinder_app` role, and logs "Row-level security: enforced" at startup.
 - The frontend keeps the selected tenant in Redux (persisted to `localStorage`) and sends it on every
   request as an `X-Tenant-Id` header (`client/src/api/baseApi.ts`'s `prepareHeaders`), read server-side
-  by `server/src/middleware/tenantContext.ts`.
+  by `server/src/middleware/tenantContext.ts`. The header is only a *request*: it is honoured only if
+  the signed-in user is a member of that tenant (403 otherwise), and the tenant is then carried through
+  the request with `AsyncLocalStorage` (`lib/tenantScope.ts`) so the database can enforce it.
 - **RTK Query gotcha**: the cache key for a query is derived only from its arguments, never from
   headers. Every tenant-scoped list/summary query must include `tenantId` in its own arguments (see
   `CandidateListParams`, `JobOrderListParams`, `SubmissionListParams` and their `*Summary` siblings) —
@@ -61,8 +71,10 @@ a one-line CRUD op — the assignment is graded on this separation.
 
 - TypeScript strict mode everywhere. No `any` unless justified with a comment.
 - Validate all request bodies with `zod` at the controller boundary before they reach a service.
-- No auth/login in this build (assumption — the spec has no login user story). Don't add JWT/session
-  scaffolding unless the user asks for it.
+- Auth: email + password login issues an HS256 JWT (`middleware/auth.ts`, `lib/jwt.ts`); users belong
+  to tenants through `Membership` rows with a role (ADMIN/RECRUITER); optional invite-only Google
+  sign-in. The spec has no login story, so this was added at the user's request as a security layer.
+  Real accounts come from `npm run create-user` (or `BOOTSTRAP_ADMIN_*` on a host with no shell).
 - CV files are stored on local disk under `server/uploads/`, path referenced from `Candidate.cvPath`.
 - CV auto-fill (bonus, implemented): `POST /api/candidates/parse-cv` (multipart, parse-only — nothing
   persisted) extracts text via `pdf-parse`/`mammoth` and detects fields via regex + `compromise` NLP +
@@ -110,8 +122,8 @@ thin enough not to need their own tests. Frontend tests cover pure utility funct
 
 The spec explicitly invites documented assumptions for gaps/ambiguities. Consolidated list:
 
-- **No auth/login** — no login user story exists in the spec; the app runs as a single implicit
-  recruiter session.
+- **Login was added beyond the spec** — the spec has no login user story. Without it the tenant
+  header could simply be forged, so sign-in, tenant memberships and roles were added (see Conventions).
 - **Tenant = sourcing channel** (LinkedIn/Monster/Naukri), not a company name — matches the spec's own
   example (`Tenant Name * (required, e.g. LinkedIn)`) and the entity diagram. Distinct from Job Order's
   `Client Name`, which is the actual hiring company *within* a tenant.

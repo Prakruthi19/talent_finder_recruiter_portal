@@ -1,5 +1,5 @@
 import { Prisma, JobOrderStatus } from "@prisma/client";
-import { prisma } from "../lib/prisma";
+import { prisma, scopedQueryRaw, tenantTransaction } from "../lib/prisma";
 import { PageParams, PageResult, toSkip } from "./pagination";
 
 export type JobOrderSortBy = "title" | "location" | "minExperience" | "createdAt";
@@ -98,7 +98,8 @@ export const jobOrderRepository = {
   },
 
   async update(id: string, data: UpdateJobOrderInput): Promise<JobOrderWithSkills> {
-    return prisma.$transaction(async (tx) => {
+    // tenantTransaction, not prisma.$transaction: it carries the tenant context for row-level security.
+    return tenantTransaction(async (tx) => {
       if (data.skillIds) {
         await tx.jobOrderRequiredSkill.deleteMany({ where: { jobOrderId: id } });
       }
@@ -135,7 +136,7 @@ export const jobOrderRepository = {
     tenantId: string,
     jobOrderId: string
   ): Promise<{ candidateId: string; matchCount: number; matchedSkillNames: string[] }[]> {
-    return prisma.$queryRaw`
+    return scopedQueryRaw<{ candidateId: string; matchCount: number; matchedSkillNames: string[] }[]>(Prisma.sql`
       SELECT
         cs."candidateId" AS "candidateId",
         COUNT(*)::int AS "matchCount",
@@ -148,7 +149,7 @@ export const jobOrderRepository = {
         AND c."tenantId" = ${tenantId}::uuid
       GROUP BY cs."candidateId"
       ORDER BY "matchCount" DESC
-    `;
+    `);
   },
 
   findCandidatesByIds(ids: string[]) {
