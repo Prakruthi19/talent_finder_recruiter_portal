@@ -12,6 +12,7 @@ import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { useCurrentRole } from "../../hooks/useAuth";
 import { ListPageLayout } from "../../components/ui/ListPageLayout";
 import { SearchInput } from "../../components/ui/SearchInput";
+import { AiCandidateSearch } from "../../components/ai/AiCandidateSearch";
 import { SortSelect } from "../../components/ui/SortSelect";
 import { Pagination } from "../../components/ui/Pagination";
 import { Button } from "../../components/ui/Button";
@@ -83,6 +84,7 @@ export function CandidateListPage() {
           <SortSelect value={sort} onChange={setSort} options={SORT_OPTIONS} />
         </>
       }
+      belowToolbar={<AiCandidateSearch />}
       footer={
         data && (
           <Pagination page={page} pageSize={PAGE_SIZE} total={data.total} onPageChange={setPage} />

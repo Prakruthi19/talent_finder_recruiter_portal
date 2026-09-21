@@ -7,6 +7,8 @@ interface Props {
   showTenantSelect?: boolean;
   summaryCards?: ReactNode;
   toolbar?: ReactNode;
+  /** Full-width content between the toolbar and the table (e.g. the Ask-AI search). */
+  belowToolbar?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
 }
@@ -17,6 +19,7 @@ export function ListPageLayout({
   showTenantSelect = false,
   summaryCards,
   toolbar,
+  belowToolbar,
   children,
   footer,
 }: Props) {
@@ -39,6 +42,8 @@ export function ListPageLayout({
           {toolbar}
         </div>
       )}
+
+      {belowToolbar}
 
       <div className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">{children}</div>

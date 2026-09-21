@@ -6,6 +6,7 @@ import { authHeaders } from "../../lib/authHeaders";
 import { API_BASE_URL } from "../../api/baseApi";
 import { Button } from "../../components/ui/Button";
 import { SkillChips } from "../../components/ui/SkillChips";
+import { CandidateAiSummary } from "../../components/ai/CandidateAiSummary";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { LoadingState, ErrorState } from "../../components/ui/PageStates";
 import { formatExperience, formatDate } from "../../lib/format";
@@ -90,6 +91,8 @@ export function CandidateDetailPage() {
           <h2 className="mb-2 text-sm font-semibold text-slate-700">Skills</h2>
           <SkillChips skills={candidate.skills.map((s) => s.skill.name)} />
         </div>
+
+        <CandidateAiSummary candidateId={candidate.id} />
 
         <div className="mt-5">
           <h2 className="mb-2 text-sm font-semibold text-slate-700">CV</h2>

@@ -147,3 +147,42 @@ export interface Features {
   ai: boolean;
   google: boolean;
 }
+
+export interface DashboardOverview {
+  totals: { candidates: number; addedThisWeek: number; openJobOrders: number; openings: number; submissions: number };
+  pipeline: { status: string; count: number }[];
+  /** Skills open roles need, scarcest first. demand = open roles needing it, supply = candidates who have it. */
+  skillGaps: { skill: string; demand: number; supply: number }[];
+  rolesNeedingAttention: { id: string; title: string; openings: number; candidates: number; shortlisted: number }[];
+}
+
+export interface AuditLogRow {
+  id: string;
+  createdAt: string;
+  user: { name: string; email: string } | null;
+  description: string;
+  action: string;
+  entityId: string | null;
+}
+
+export interface JobDescriptionDraft {
+  title?: string;
+  clientName?: string;
+  location?: string;
+  minExperience?: number;
+  numberOfOpenings?: number;
+  skills: string[];
+  suggestedSkills: string[];
+}
+
+export interface OutreachDraft {
+  subject: string;
+  body: string;
+}
+
+export interface CandidateSearchResult {
+  interpretation: { skills: string[]; location?: string; minExperience?: number; maxExperience?: number; nameContains?: string };
+  unknownSkills: string[];
+  items: Candidate[];
+  total: number;
+}
