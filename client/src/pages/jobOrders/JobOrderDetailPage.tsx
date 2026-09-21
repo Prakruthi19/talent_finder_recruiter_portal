@@ -13,12 +13,18 @@ import { StatusBadge } from "../../components/ui/StatusBadge";
 import { LoadingState, ErrorState, EmptyState } from "../../components/ui/PageStates";
 import { formatExperience } from "../../lib/format";
 import { useCurrentRole } from "../../hooks/useAuth";
+import { useGetFeaturesQuery } from "../../api/authApi";
+import { MatchAiActions } from "../../components/ai/MatchAiActions";
 import type { MatchingCandidateRow } from "../../types";
 
 function AiInsightPanel({ jobOrderId, candidateId }: { jobOrderId: string; candidateId: string }) {
   const [generateInsight, { isLoading }] = useGenerateMatchInsightMutation();
+  const { data: features } = useGetFeaturesQuery();
   const [insight, setInsight] = useState<string>();
   const [error, setError] = useState<string>();
+
+  // Offered only when the server has an AI key, like the other AI buttons.
+  if (!features?.ai) return null;
 
   async function handleClick() {
     setError(undefined);
@@ -87,6 +93,7 @@ function MatchRow({
           <SkillChips skills={row.candidate.skills.map((s) => s.skill.name)} highlight={matchedSet} />
         </div>
         <AiInsightPanel jobOrderId={jobOrderId} candidateId={row.candidate.id} />
+        <MatchAiActions jobOrderId={jobOrderId} candidateId={row.candidate.id} />
       </div>
       <div className="flex items-center gap-3 sm:flex-col sm:items-end">
         <span className="text-sm font-semibold text-brand-700">

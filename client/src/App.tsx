@@ -14,6 +14,8 @@ import { JobOrderCreatePage } from "./pages/jobOrders/JobOrderCreatePage";
 import { JobOrderDetailPage } from "./pages/jobOrders/JobOrderDetailPage";
 import { JobOrderEditPage } from "./pages/jobOrders/JobOrderEditPage";
 import { SubmissionListPage } from "./pages/submissions/SubmissionListPage";
+import { DashboardPage } from "./pages/dashboard/DashboardPage";
+import { ActivityPage } from "./pages/activity/ActivityPage";
 
 export default function App() {
   return (
@@ -23,7 +25,9 @@ export default function App() {
 
       <Route element={<RequireAuth />}>
         <Route element={<AppLayout />}>
-          <Route index element={<Navigate to="/candidates" replace />} />
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="activity" element={<ActivityPage />} />
 
           <Route path="tenants" element={<TenantListPage />} />
           <Route path="tenants/new" element={<TenantCreatePage />} />
@@ -40,7 +44,7 @@ export default function App() {
 
           <Route path="submissions" element={<SubmissionListPage />} />
 
-          <Route path="*" element={<Navigate to="/candidates" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Route>
     </Routes>

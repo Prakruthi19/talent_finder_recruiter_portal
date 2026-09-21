@@ -6,6 +6,8 @@ import { FormPageLayout } from "../../components/ui/FormPageLayout";
 import { FormField } from "../../components/forms/FormField";
 import { SkillsInput } from "../../components/forms/SkillsInput";
 import { Button } from "../../components/ui/Button";
+import { JobDescriptionPanel } from "../../components/ai/JobDescriptionPanel";
+import type { JobDescriptionDraft } from "../../types";
 
 interface FormErrors {
   title?: string;
@@ -27,6 +29,16 @@ export function JobOrderCreatePage() {
   const [skills, setSkills] = useState<string[]>([]);
   const [errors, setErrors] = useState<FormErrors>({});
   const [createJobOrder, { isLoading }] = useCreateJobOrderMutation();
+
+  // Only overwrites what the AI actually found, so a partly-typed form isn't blanked.
+  function applyDraft(draft: JobDescriptionDraft) {
+    if (draft.title) setTitle(draft.title);
+    if (draft.clientName) setClientName(draft.clientName);
+    if (draft.location) setLocation(draft.location);
+    if (draft.minExperience !== undefined) setMinExperience(String(draft.minExperience));
+    if (draft.numberOfOpenings !== undefined) setNumberOfOpenings(String(draft.numberOfOpenings));
+    if (draft.skills.length > 0) setSkills(draft.skills);
+  }
 
   function validate(): boolean {
     const next: FormErrors = {};
@@ -66,6 +78,11 @@ export function JobOrderCreatePage() {
   return (
     <FormPageLayout title="Create Job Order">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <JobDescriptionPanel
+          onDraft={applyDraft}
+          onAddSkill={(skill) => setSkills((current) => (current.includes(skill) ? current : [...current, skill]))}
+          skills={skills}
+        />
         <FormField label="Job Title" required value={title} onChange={(e) => setTitle(e.target.value)} error={errors.title} />
         <FormField label="Client Name" value={clientName} onChange={(e) => setClientName(e.target.value)} />
         <FormField label="Location" required value={location} onChange={(e) => setLocation(e.target.value)} error={errors.location} />
