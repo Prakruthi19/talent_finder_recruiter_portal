@@ -25,6 +25,15 @@ const candidateWithDetails = {
 export type CandidateWithSkills = Prisma.CandidateGetPayload<typeof candidateWithSkills>;
 export type CandidateWithDetails = Prisma.CandidateGetPayload<typeof candidateWithDetails>;
 
+export interface CandidateFilters {
+  /** Every listed skill is required (exact names, like the core matching). */
+  skills: string[];
+  location?: string;
+  minExperience?: number;
+  maxExperience?: number;
+  nameContains?: string;
+}
+
 export interface CreateCandidateInput {
   tenantId: string;
   fullName: string;
@@ -103,6 +112,32 @@ export const candidateRepository = {
         ...(excludeId ? { id: { not: excludeId } } : {}),
       },
     });
+  },
+
+  /** Structured search (used by the natural-language search). Always scoped to the tenant. */
+  async findByFilters(tenantId: string, filters: CandidateFilters, limit = 25) {
+    const where: Prisma.CandidateWhereInput = {
+      tenantId,
+      AND: [
+        ...filters.skills.map((name) => ({ skills: { some: { skill: { name } } } })),
+        ...(filters.location ? [{ location: { contains: filters.location, mode: "insensitive" as const } }] : []),
+        ...(filters.minExperience !== undefined ? [{ experienceYears: { gte: filters.minExperience } }] : []),
+        ...(filters.maxExperience !== undefined ? [{ experienceYears: { lte: filters.maxExperience } }] : []),
+        ...(filters.nameContains
+          ? [{ fullName: { contains: filters.nameContains, mode: "insensitive" as const } }]
+          : []),
+      ],
+    };
+    const [items, total] = await Promise.all([
+      prisma.candidate.findMany({
+        where,
+        orderBy: [{ experienceYears: "desc" }, { fullName: "asc" }],
+        take: limit,
+        ...candidateWithSkills,
+      }),
+      prisma.candidate.count({ where }),
+    ]);
+    return { items, total };
   },
 
   countThisWeek(tenantId: string) {

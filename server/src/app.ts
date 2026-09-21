@@ -7,6 +7,10 @@ import { tenantRoutes } from "./routes/tenant.routes";
 import { candidateRoutes } from "./routes/candidate.routes";
 import { jobOrderRoutes } from "./routes/jobOrder.routes";
 import { submissionRoutes } from "./routes/submission.routes";
+import { aiRoutes } from "./routes/ai.routes";
+import { auditRoutes } from "./routes/audit.routes";
+import { dashboardRoutes } from "./routes/dashboard.routes";
+import { auditTrail } from "./middleware/audit";
 import { errorHandler } from "./middleware/errorHandler";
 
 export function createApp() {
@@ -37,12 +41,18 @@ export function createApp() {
 
   app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
+  // Registered before the routes so it sees every write; it only reads the outcome.
+  app.use(auditTrail);
+
   app.get("/api/features", featuresController.get);
   app.use("/api/auth", authRoutes);
   app.use("/api/tenants", tenantRoutes);
   app.use("/api/candidates", candidateRoutes);
   app.use("/api/job-orders", jobOrderRoutes);
   app.use("/api/submissions", submissionRoutes);
+  app.use("/api/dashboard", dashboardRoutes);
+  app.use("/api/ai", aiRoutes);
+  app.use("/api/audit-logs", auditRoutes);
 
   app.use(errorHandler);
 

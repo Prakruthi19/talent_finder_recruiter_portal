@@ -146,3 +146,15 @@ function suggestUnknown(text: string, found: string[], covered: (token: string) 
   }
   return [...suggestions];
 }
+
+/**
+ * Maps one skill name from elsewhere (a model's answer, a job description) onto
+ * a skill the database knows: exact, alias, or a typo. Undefined means unknown.
+ */
+export function canonicalSkill(input: string, knownSkillNames: string[]): string | undefined {
+  const token = input.trim().toLowerCase();
+  if (!token) return undefined;
+  for (const name of knownSkillNames) if (termsFor(name).includes(token)) return name;
+  if (/\s/.test(token) || token.length < 5) return undefined;
+  return knownSkillNames.filter((n) => !/\s/.test(n)).find((n) => isTypoOf(token, n.toLowerCase()));
+}
