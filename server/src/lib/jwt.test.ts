@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import jwt from "jsonwebtoken";
 import { UnauthorizedError } from "./errors";
-import { assertJwtConfigured, signToken, verifyToken } from "./jwt";
+import { assertJwtConfigured, signOAuthState, signToken, verifyOAuthState, verifyToken } from "./jwt";
 
 const SECRET = "test-secret-that-is-at-least-32-characters-long";
 
@@ -44,6 +44,21 @@ describe("jwt", () => {
 
   it("rejects garbage", () => {
     expect(() => verifyToken("not-a-token")).toThrow(UnauthorizedError);
+  });
+
+  it("round-trips the OAuth state nonce", () => {
+    expect(verifyOAuthState(signOAuthState("nonce-123"))).toBe("nonce-123");
+  });
+
+  it("does not accept a login token as OAuth state, or the reverse", () => {
+    expect(() => verifyOAuthState(signToken("user-1"))).toThrow(UnauthorizedError);
+    expect(() => verifyToken(signOAuthState("nonce"))).toThrow(UnauthorizedError);
+  });
+
+  it("rejects forged or expired OAuth state", () => {
+    expect(() => verifyOAuthState("garbage")).toThrow(UnauthorizedError);
+    const expired = jwt.sign({ purpose: "oauth-state", nonce: "n", exp: Math.floor(Date.now() / 1000) - 60 }, SECRET);
+    expect(() => verifyOAuthState(expired)).toThrow(UnauthorizedError);
   });
 
   it("refuses to run without a strong secret", () => {

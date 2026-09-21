@@ -9,6 +9,7 @@ import {
 } from "../../api/candidatesApi";
 import { useAppSelector } from "../../store/hooks";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
+import { useCurrentRole } from "../../hooks/useAuth";
 import { ListPageLayout } from "../../components/ui/ListPageLayout";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { SortSelect } from "../../components/ui/SortSelect";
@@ -34,6 +35,7 @@ const SORT_OPTIONS = [
 export function CandidateListPage() {
   const navigate = useNavigate();
   const tenantId = useAppSelector((s) => s.tenant.selectedTenantId);
+  const isAdmin = useCurrentRole() === "ADMIN";
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("createdAt:desc");
@@ -128,12 +130,17 @@ export function CandidateListPage() {
                     items={[
                       { label: "View", icon: FiEye, onClick: () => navigate(`/candidates/${c.id}`) },
                       { label: "Edit", icon: FiEdit2, onClick: () => navigate(`/candidates/${c.id}/edit`) },
-                      {
-                        label: "Delete",
-                        icon: FiTrash2,
-                        destructive: true,
-                        onClick: () => handleDelete(c.id, c.fullName),
-                      },
+                      // Deleting is admin-only on the server too; hiding it just avoids a dead button.
+                      ...(isAdmin
+                        ? [
+                            {
+                              label: "Delete",
+                              icon: FiTrash2,
+                              destructive: true,
+                              onClick: () => handleDelete(c.id, c.fullName),
+                            },
+                          ]
+                        : []),
                     ]}
                   />
                 </Td>

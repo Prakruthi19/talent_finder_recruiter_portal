@@ -26,6 +26,28 @@ export function signToken(userId: string): string {
 }
 
 /**
+ * A short-lived, signed value carried through Google's redirect as `state`, so a
+ * callback can't be forged. It embeds a nonce that must also match an httpOnly
+ * cookie in the same browser, which stops a login-CSRF where an attacker
+ * makes a victim complete the attacker's own sign-in.
+ */
+export function signOAuthState(nonce: string): string {
+  return jwt.sign({ purpose: "oauth-state", nonce }, secret(), { algorithm: ALGORITHM, expiresIn: "10m" });
+}
+
+export function verifyOAuthState(state: string): string {
+  try {
+    const payload = jwt.verify(state, secret(), { algorithms: [ALGORITHM] });
+    if (typeof payload === "object" && payload.purpose === "oauth-state" && typeof payload.nonce === "string") {
+      return payload.nonce;
+    }
+  } catch {
+    // fall through to the generic error
+  }
+  throw new UnauthorizedError("Invalid or expired sign-in state");
+}
+
+/**
  * Returns the user id from a valid token. `algorithms` is pinned so a token
  * signed with `alg: none` (or any other algorithm) is rejected.
  */

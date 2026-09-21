@@ -1,3 +1,28 @@
+export type Role = "ADMIN" | "RECRUITER";
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+}
+
+/** A tenant the signed-in user belongs to, with their role in it. */
+export interface AuthTenant {
+  id: string;
+  name: string;
+  status: "ACTIVE" | "INACTIVE";
+  role: Role;
+}
+
+export interface AuthProfile {
+  user: AuthUser;
+  tenants: AuthTenant[];
+}
+
+export interface LoginResponse extends AuthProfile {
+  token: string;
+}
+
 export interface Tenant {
   id: string;
   name: string;
