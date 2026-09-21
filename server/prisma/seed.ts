@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -86,6 +87,9 @@ const CLIENTS = ["Acme Corp", "Globex", "Initech", "Umbrella Inc", "Stark Indust
 
 async function main() {
   console.log("Clearing existing data...");
+  await prisma.auditLog.deleteMany();
+  await prisma.membership.deleteMany();
+  await prisma.user.deleteMany();
   await prisma.submission.deleteMany();
   await prisma.jobOrderRequiredSkill.deleteMany();
   await prisma.candidateSkill.deleteMany();
@@ -146,6 +150,23 @@ async function main() {
         },
       });
     }
+  }
+
+  // Demo logins (local/demo data only; real accounts come from `npm run create-user`).
+  // The recruiter is deliberately NOT a member of Naukri, so tenant isolation is visible.
+  const tenants = await prisma.tenant.findMany();
+  const demoUsers = [
+    { email: "admin@talentfinder.demo", name: "Asha Admin", password: "Admin@12345", tenants: tenantNames, role: "ADMIN" as const },
+    { email: "recruiter@talentfinder.demo", name: "Ravi Recruiter", password: "Recruit@12345", tenants: ["LinkedIn", "Monster"], role: "RECRUITER" as const },
+  ];
+  for (const demo of demoUsers) {
+    const user = await prisma.user.create({
+      data: { email: demo.email, name: demo.name, passwordHash: await bcrypt.hash(demo.password, 12) },
+    });
+    for (const tenant of tenants.filter((t) => demo.tenants.includes(t.name))) {
+      await prisma.membership.create({ data: { userId: user.id, tenantId: tenant.id, role: demo.role } });
+    }
+    console.log(`Demo login: ${demo.email} / ${demo.password} (${demo.role}: ${demo.tenants.join(", ")})`);
   }
 
   console.log("Seed complete.");

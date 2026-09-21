@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import { authRoutes } from "./routes/auth.routes";
 import { tenantRoutes } from "./routes/tenant.routes";
 import { candidateRoutes } from "./routes/candidate.routes";
 import { jobOrderRoutes } from "./routes/jobOrder.routes";
@@ -27,10 +29,14 @@ export function createApp() {
       },
     })
   );
-  app.use(express.json());
+  // Standard security headers (nosniff, frame-ancestors, HSTS on https, no X-Powered-By, ...).
+  app.use(helmet());
+  // The API only takes small JSON bodies (CVs go through multer), so cap them.
+  app.use(express.json({ limit: "100kb" }));
 
   app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
+  app.use("/api/auth", authRoutes);
   app.use("/api/tenants", tenantRoutes);
   app.use("/api/candidates", candidateRoutes);
   app.use("/api/job-orders", jobOrderRoutes);

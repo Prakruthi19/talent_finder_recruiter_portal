@@ -33,3 +33,17 @@ export class ServiceUnavailableError extends AppError {
     super(message, 503);
   }
 }
+
+/** No/invalid credentials. Deliberately generic so it never reveals which part was wrong. */
+export class UnauthorizedError extends AppError {
+  constructor(message = "Authentication required") {
+    super(message, 401);
+  }
+}
+
+/** Authenticated, but not allowed to do this (wrong tenant or role). */
+export class ForbiddenError extends AppError {
+  constructor(message = "You don't have permission to do that") {
+    super(message, 403);
+  }
+}

@@ -6,11 +6,19 @@ export interface TenantListParams extends PageParams {
   search?: string;
 }
 
+// Every listing is scoped to the caller's memberships: there is deliberately no
+// "all tenants" query for request handling, only `findAll` for server bootstrap.
+const ofUser = (userId: string): Prisma.TenantWhereInput => ({ memberships: { some: { userId } } });
+
 export const tenantRepository = {
-  async findMany({ search, page, pageSize }: TenantListParams): Promise<PageResult<Prisma.TenantGetPayload<{}>>> {
-    const where: Prisma.TenantWhereInput = search
-      ? { name: { contains: search, mode: "insensitive" } }
-      : {};
+  async findManyForUser(
+    userId: string,
+    { search, page, pageSize }: TenantListParams
+  ): Promise<PageResult<Prisma.TenantGetPayload<{}>>> {
+    const where: Prisma.TenantWhereInput = {
+      ...ofUser(userId),
+      ...(search ? { name: { contains: search, mode: "insensitive" } } : {}),
+    };
 
     const [items, total] = await Promise.all([
       prisma.tenant.findMany({
@@ -33,15 +41,21 @@ export const tenantRepository = {
     return prisma.tenant.findUnique({ where: { name } });
   },
 
-  create(data: { name: string }) {
-    return prisma.tenant.create({ data });
+  /** Server bootstrap only, never for serving a request. */
+  findAll() {
+    return prisma.tenant.findMany({ select: { id: true } });
   },
 
-  count() {
-    return prisma.tenant.count();
+  /** Creates the tenant and makes its creator an ADMIN in one atomic write. */
+  createWithAdmin(userId: string, name: string) {
+    return prisma.tenant.create({ data: { name, memberships: { create: { userId, role: "ADMIN" } } } });
   },
 
-  countActive() {
-    return prisma.tenant.count({ where: { status: "ACTIVE" } });
+  countForUser(userId: string) {
+    return prisma.tenant.count({ where: ofUser(userId) });
+  },
+
+  countActiveForUser(userId: string) {
+    return prisma.tenant.count({ where: { ...ofUser(userId), status: "ACTIVE" } });
   },
 };

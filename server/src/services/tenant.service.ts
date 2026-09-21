@@ -2,8 +2,8 @@ import { tenantRepository, TenantListParams } from "../repositories/tenant.repos
 import { ConflictError, NotFoundError } from "../lib/errors";
 
 export const tenantService = {
-  list(params: TenantListParams) {
-    return tenantRepository.findMany(params);
+  list(userId: string, params: TenantListParams) {
+    return tenantRepository.findManyForUser(userId, params);
   },
 
   async getById(id: string) {
@@ -12,16 +12,16 @@ export const tenantService = {
     return tenant;
   },
 
-  async create(data: { name: string }) {
+  async create(userId: string, data: { name: string }) {
     const existing = await tenantRepository.findByName(data.name);
     if (existing) throw new ConflictError(`Tenant "${data.name}" already exists`);
-    return tenantRepository.create(data);
+    return tenantRepository.createWithAdmin(userId, data.name);
   },
 
-  async summary() {
+  async summary(userId: string) {
     const [total, activeCount] = await Promise.all([
-      tenantRepository.count(),
-      tenantRepository.countActive(),
+      tenantRepository.countForUser(userId),
+      tenantRepository.countActiveForUser(userId),
     ]);
     return { total, activeCount };
   },

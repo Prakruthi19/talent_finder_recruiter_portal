@@ -3,6 +3,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import multer, { FileFilterCallback } from "multer";
 import { Request } from "express";
+import { AppError } from "../lib/errors";
 
 const UPLOAD_DIR = path.join(__dirname, "..", "..", "uploads");
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -25,7 +26,7 @@ function fileFilter(_req: Request, file: Express.Multer.File, cb: FileFilterCall
   if (ALLOWED_MIME_TYPES.has(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Only .pdf and .docx files are accepted"));
+    cb(new AppError("Only .pdf and .docx files are accepted", 400));
   }
 }
 

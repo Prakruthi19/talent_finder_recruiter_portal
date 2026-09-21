@@ -21,8 +21,68 @@ model Tenant {
   candidates  Candidate[]
   jobOrders   JobOrder[]
   submissions Submission[]
+  memberships Membership[]
+  auditLogs   AuditLog[]
 
   @@map("tenants")
+}
+
+// ---------------------------------------------------------------------------
+// Auth. A User signs in with email + password and may belong to several
+// tenants, with a role in each (Membership). The server decides which tenant a
+// request may act on from these rows, never from a client-supplied header alone.
+// ---------------------------------------------------------------------------
+enum Role {
+  ADMIN
+  RECRUITER
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships Membership[]
+  auditLogs   AuditLog[]
+
+  @@map("users")
+}
+
+model Membership {
+  userId   String @db.Uuid
+  tenantId String @db.Uuid
+  role     Role   @default(RECRUITER)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@id([userId, tenantId])
+  // The PK serves "tenants of this user"; this serves "members of this tenant".
+  @@index([tenantId])
+  @@map("memberships")
+}
+
+// ---------------------------------------------------------------------------
+// AuditLog: who did what, in which tenant. Written by middleware for every
+// successful write request (and for logins), never edited.
+// ---------------------------------------------------------------------------
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String?  @db.Uuid
+  userId    String?  @db.Uuid
+  action    String
+  entityId  String?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@map("audit_logs")
 }
 
 enum TenantStatus {
