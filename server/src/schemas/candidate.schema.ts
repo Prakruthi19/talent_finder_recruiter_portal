@@ -11,9 +11,18 @@ const skillsField = z.preprocess(
   z.array(z.string().trim().min(1)).min(1, "At least one skill is required")
 );
 
+// Stored lowercase so the (tenantId, email) unique index behaves case-insensitively.
+const emailField = z
+  .string()
+  .trim()
+  .email()
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => v?.toLowerCase() || undefined);
+
 export const createCandidateSchema = z.object({
   fullName: z.string().trim().min(1, "Full name is required").max(160),
-  email: z.string().trim().email().optional().or(z.literal("")).transform((v) => v || undefined),
+  email: emailField,
   phone: z.string().trim().max(40).optional().or(z.literal("")).transform((v) => v || undefined),
   location: z.string().trim().max(160).optional().or(z.literal("")).transform((v) => v || undefined),
   experienceYears: z.coerce.number().min(0).max(60),
@@ -22,7 +31,7 @@ export const createCandidateSchema = z.object({
 
 export const updateCandidateSchema = z.object({
   fullName: z.string().trim().min(1).max(160).optional(),
-  email: z.string().trim().email().optional().or(z.literal("")).transform((v) => v || undefined),
+  email: emailField,
   phone: z.string().trim().max(40).optional().or(z.literal("")).transform((v) => v || undefined),
   location: z.string().trim().max(160).optional().or(z.literal("")).transform((v) => v || undefined),
   experienceYears: z.coerce.number().min(0).max(60).optional(),

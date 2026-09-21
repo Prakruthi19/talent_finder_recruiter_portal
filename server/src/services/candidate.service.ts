@@ -4,7 +4,7 @@ import {
   CandidateListParams,
 } from "../repositories/candidate.repository";
 import { skillRepository } from "../repositories/skill.repository";
-import { NotFoundError } from "../lib/errors";
+import { ConflictError, NotFoundError } from "../lib/errors";
 
 export interface CreateCandidateServiceInput {
   tenantId: string;
@@ -27,6 +27,13 @@ export interface UpdateCandidateServiceInput {
   skills?: string[];
 }
 
+async function assertEmailAvailable(tenantId: string, email: string, excludeId?: string) {
+  const existing = await candidateRepository.findByEmail(tenantId, email, excludeId);
+  if (existing) {
+    throw new ConflictError(`A candidate with the email "${email}" already exists in this tenant`);
+  }
+}
+
 export const candidateService = {
   async list(tenantId: string, params: CandidateListParams) {
     return candidateRepository.findMany(tenantId, params);
@@ -47,6 +54,9 @@ export const candidateService = {
   },
 
   async create(input: CreateCandidateServiceInput) {
+    // Checked first so a rejected duplicate doesn't leave new Skill rows behind.
+    // Email is optional; a candidate without one can't be matched, so is never a duplicate.
+    if (input.email) await assertEmailAvailable(input.tenantId, input.email);
     const skills = await skillRepository.findOrCreateMany(input.skills);
     return candidateRepository.create({
       tenantId: input.tenantId,
@@ -64,6 +74,12 @@ export const candidateService = {
   async update(tenantId: string, id: string, input: UpdateCandidateServiceInput) {
     const existing = await candidateRepository.findById(tenantId, id);
     if (!existing) throw new NotFoundError("Candidate");
+
+    // Only when the email actually changes: the edit form resends it on every
+    // save, and re-checking an unchanged email would just find the candidate itself.
+    if (input.email && input.email.toLowerCase() !== existing.email?.toLowerCase()) {
+      await assertEmailAvailable(tenantId, input.email, id);
+    }
 
     const skillIds = input.skills
       ? (await skillRepository.findOrCreateMany(input.skills)).map((s) => s.id)

@@ -57,4 +57,15 @@ describe("createCandidateSchema", () => {
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.email).toBeUndefined();
   });
+
+  it("lowercases the email so the (tenantId, email) unique key is case-insensitive", () => {
+    const result = createCandidateSchema.safeParse({
+      fullName: "Jane Doe",
+      email: "  Jane.Doe@Example.COM ",
+      experienceYears: "5",
+      skills: ["React"],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.email).toBe("jane.doe@example.com");
+  });
 });

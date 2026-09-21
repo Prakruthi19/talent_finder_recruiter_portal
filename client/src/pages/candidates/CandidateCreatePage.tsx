@@ -19,6 +19,7 @@ export function CandidateCreatePage() {
   const navigate = useNavigate();
   const tenantId = useAppSelector((s) => s.tenant.selectedTenantId);
   const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [location, setLocation] = useState("");
   const [experienceYears, setExperienceYears] = useState("");
   const [skills, setSkills] = useState<string[]>([]);
@@ -48,6 +49,7 @@ export function CandidateCreatePage() {
       // overwrite values a first (wrong) CV already populated.
       const fields = result.fields ?? { skills: [] };
       if (fields.fullName) setFullName(fields.fullName);
+      if (fields.email) setEmail(fields.email);
       if (fields.location) setLocation(fields.location);
       if (fields.experienceYears !== undefined) setExperienceYears(String(fields.experienceYears));
       if (fields.skills.length > 0) setSkills(fields.skills);
@@ -76,6 +78,7 @@ export function CandidateCreatePage() {
     try {
       const candidate = await createCandidate({
         fullName: fullName.trim(),
+        email: email.trim() || undefined,
         location: location.trim() || undefined,
         experienceYears: Number(experienceYears),
         skills,
@@ -116,6 +119,14 @@ export function CandidateCreatePage() {
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           error={errors.fullName}
+        />
+        <FormField
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="name@example.com"
+          hint="Optional. Used to detect duplicate candidates within a tenant."
         />
         <FormField label="Location" value={location} onChange={(e) => setLocation(e.target.value)} />
         <FormField

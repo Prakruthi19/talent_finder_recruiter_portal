@@ -53,17 +53,24 @@ export const candidateController = {
       }
     }
 
-    const candidate = await candidateService.create({
-      tenantId,
-      fullName: body.fullName,
-      email: body.email,
-      phone: body.phone,
-      location: body.location,
-      experienceYears: body.experienceYears,
-      skills: body.skills,
-      cvPath: file?.path,
-      cvOriginalName: file?.originalname,
-    });
+    const candidate = await candidateService
+      .create({
+        tenantId,
+        fullName: body.fullName,
+        email: body.email,
+        phone: body.phone,
+        location: body.location,
+        experienceYears: body.experienceYears,
+        skills: body.skills,
+        cvPath: file?.path,
+        cvOriginalName: file?.originalname,
+      })
+      .catch(async (err: unknown) => {
+        // multer already wrote the CV to disk; a rejected create (e.g. a
+        // duplicate) must not leave it orphaned.
+        if (file) await fs.unlink(file.path).catch(() => undefined);
+        throw err;
+      });
 
     res.status(201).json(candidate);
   },

@@ -23,6 +23,7 @@ export interface CandidateSummary {
 
 export interface CreateCandidateInput {
   fullName: string;
+  email?: string;
   location?: string;
   experienceYears: number;
   skills: string[];
@@ -31,6 +32,7 @@ export interface CreateCandidateInput {
 
 export interface UpdateCandidateInput {
   fullName?: string;
+  email?: string;
   location?: string;
   experienceYears?: number;
   skills?: string[];
@@ -39,6 +41,7 @@ export interface UpdateCandidateInput {
 function buildCandidateFormData(input: CreateCandidateInput): FormData {
   const formData = new FormData();
   formData.set("fullName", input.fullName);
+  if (input.email) formData.set("email", input.email);
   if (input.location) formData.set("location", input.location);
   formData.set("experienceYears", String(input.experienceYears));
   input.skills.forEach((skill) => formData.append("skills", skill));

@@ -21,6 +21,7 @@ export function CandidateEditPage() {
   const [updateCandidate, { isLoading: isSaving }] = useUpdateCandidateMutation();
 
   const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [location, setLocation] = useState("");
   const [experienceYears, setExperienceYears] = useState("");
   const [skills, setSkills] = useState<string[]>([]);
@@ -29,6 +30,7 @@ export function CandidateEditPage() {
   useEffect(() => {
     if (candidate) {
       setFullName(candidate.fullName);
+      setEmail(candidate.email ?? "");
       setLocation(candidate.location ?? "");
       setExperienceYears(String(candidate.experienceYears));
       setSkills(candidate.skills.map((s) => s.skill.name));
@@ -52,6 +54,7 @@ export function CandidateEditPage() {
         id,
         body: {
           fullName: fullName.trim(),
+          email: email.trim() || undefined,
           location: location.trim() || undefined,
           experienceYears: Number(experienceYears),
           skills,
@@ -78,7 +81,14 @@ export function CandidateEditPage() {
           onChange={(e) => setFullName(e.target.value)}
           error={errors.fullName}
         />
-        
+        <FormField
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="name@example.com"
+          hint="Optional. Used to detect duplicate candidates within a tenant."
+        />
         <FormField label="Location" value={location} onChange={(e) => setLocation(e.target.value)} />
         <FormField
           label="Total Experience (Years)"
