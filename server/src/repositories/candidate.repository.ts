@@ -94,6 +94,17 @@ export const candidateRepository = {
     });
   },
 
+  /** Email identifies a candidate within a tenant; compared case-insensitively. */
+  findByEmail(tenantId: string, email: string, excludeId?: string) {
+    return prisma.candidate.findFirst({
+      where: {
+        tenantId,
+        email: { equals: email, mode: "insensitive" },
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+    });
+  },
+
   countThisWeek(tenantId: string) {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);

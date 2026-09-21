@@ -66,6 +66,10 @@ model Candidate {
   skills      CandidateSkill[]
   submissions Submission[]
 
+  // Email identifies a candidate within a tenant. Postgres treats NULLs as
+  // distinct, so candidates without an email never collide. The app stores
+  // emails lowercased (candidate.schema.ts) so this is effectively case-insensitive.
+  @@unique([tenantId, email])
   @@index([tenantId])
   @@map("candidates")
 }
