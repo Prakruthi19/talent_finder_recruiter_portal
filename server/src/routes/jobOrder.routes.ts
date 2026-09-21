@@ -2,6 +2,7 @@ import { Router } from "express";
 import { jobOrderController } from "../controllers/jobOrder.controller";
 import { submissionController } from "../controllers/submission.controller";
 import { asyncHandler } from "../middleware/asyncHandler";
+import { aiLimiter } from "../middleware/rateLimit";
 import { requireTenant } from "../middleware/tenantContext";
 
 export const jobOrderRoutes = Router();
@@ -17,4 +18,4 @@ jobOrderRoutes.delete("/:id", asyncHandler(jobOrderController.remove));
 
 jobOrderRoutes.get("/:id/matches", asyncHandler(jobOrderController.matchingCandidates));
 jobOrderRoutes.post("/:jobOrderId/shortlist", asyncHandler(submissionController.shortlist));
-jobOrderRoutes.post("/:id/insight", asyncHandler(jobOrderController.generateInsight));
+jobOrderRoutes.post("/:id/insight", aiLimiter, asyncHandler(jobOrderController.generateInsight));

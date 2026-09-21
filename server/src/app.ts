@@ -9,6 +9,10 @@ import { errorHandler } from "./middleware/errorHandler";
 export function createApp() {
   const app = express();
 
+  // Render terminates TLS at a reverse proxy; without this every client would
+  // share the proxy's IP and hit the rate limits together.
+  app.set("trust proxy", 1);
+
   // Vite falls back to the next free port (5174, 5175, ...) if 5173 is taken,
   // so allow any localhost/127.0.0.1 origin in dev rather than pinning one.
   const LOCALHOST_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/;
