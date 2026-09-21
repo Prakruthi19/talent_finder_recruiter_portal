@@ -20,10 +20,6 @@ const clientUrl = () => process.env.CLIENT_ORIGIN ?? "http://localhost:5173";
 const failTo = (res: Response, code: string) => res.redirect(`${clientUrl()}/login?error=${code}`);
 
 export const oauthController = {
-  providers(_req: Request, res: Response) {
-    res.json({ google: getGoogleConfig() !== null });
-  },
-
   googleStart(_req: Request, res: Response) {
     const config = getGoogleConfig();
     if (!config) throw new ServiceUnavailableError("Google sign-in is not configured");

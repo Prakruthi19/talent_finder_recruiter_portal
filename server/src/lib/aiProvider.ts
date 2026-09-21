@@ -5,8 +5,19 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface ChatOptions {
+  /** Upper bound on the reply length. Keep it tight: it is also a cost cap. */
+  maxTokens?: number;
+  temperature?: number;
+}
+
 interface ChatCompletionResponse {
   choices: { message: { content: string } }[];
+}
+
+/** Features that call the model are on only when a key is configured (see GET /api/features). */
+export function isAiConfigured(env: NodeJS.ProcessEnv = process.env): boolean {
+  return Boolean(env.AI_API_KEY);
 }
 
 /**
@@ -15,7 +26,7 @@ interface ChatCompletionResponse {
  * is chosen purely by env vars so swapping providers never touches calling
  * code.
  */
-export async function generateChatCompletion(messages: ChatMessage[]): Promise<string> {
+export async function generateChatCompletion(messages: ChatMessage[], options: ChatOptions = {}): Promise<string> {
   const apiKey = process.env.AI_API_KEY;
   if (!apiKey) {
     throw new ServiceUnavailableError(
@@ -37,8 +48,8 @@ export async function generateChatCompletion(messages: ChatMessage[]): Promise<s
       body: JSON.stringify({
         model,
         messages,
-        temperature: 0.4,
-        max_tokens: 200,
+        temperature: options.temperature ?? 0.4,
+        max_tokens: options.maxTokens ?? 200,
       }),
     });
   } catch {

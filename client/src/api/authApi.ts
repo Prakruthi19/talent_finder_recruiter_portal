@@ -1,5 +1,5 @@
 import { baseApi } from "./baseApi";
-import type { AuthProfile, LoginResponse } from "../types";
+import type { AuthProfile, Features, LoginResponse } from "../types";
 
 export const authApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -12,11 +12,11 @@ export const authApi = baseApi.injectEndpoints({
       query: () => "/auth/me",
       providesTags: ["Me"],
     }),
-    /** GET /api/auth/providers -> which optional sign-in methods the server has configured. */
-    getAuthProviders: builder.query<{ google: boolean }, void>({
-      query: () => "/auth/providers",
+    /** GET /api/features -> which optional features (AI, Google sign-in) the server has configured. */
+    getFeatures: builder.query<Features, void>({
+      query: () => "/features",
     }),
   }),
 });
 
-export const { useLoginMutation, useGetMeQuery, useGetAuthProvidersQuery } = authApi;
+export const { useLoginMutation, useGetMeQuery, useGetFeaturesQuery } = authApi;

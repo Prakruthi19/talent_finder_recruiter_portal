@@ -38,9 +38,12 @@ const auth = await import("./auth.service");
 let passwordHash: string;
 beforeAll(async () => {
   passwordHash = await hashPassword("Correct-Horse-1");
-});
+}, 30_000);
 
 const user = () => ({ id: "user-1", email: "a@b.co", name: "Ada", passwordHash });
+
+// Each login does a real bcrypt compare (deliberately slow), so allow for a busy CPU.
+vi.setConfig({ testTimeout: 30_000 });
 
 describe("auth.login", () => {
   beforeEach(() => {

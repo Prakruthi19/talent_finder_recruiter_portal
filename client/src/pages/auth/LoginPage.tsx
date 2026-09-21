@@ -2,7 +2,7 @@ import { FormEvent, useState } from "react";
 import { Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
 import { API_BASE_URL } from "../../api/baseApi";
-import { useGetAuthProvidersQuery, useLoginMutation } from "../../api/authApi";
+import { useGetFeaturesQuery, useLoginMutation } from "../../api/authApi";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { setToken } from "../../store/authSlice";
 import { FormField } from "../../components/forms/FormField";
@@ -26,7 +26,7 @@ export function LoginPage() {
   const token = useAppSelector((s) => s.auth.token);
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { data: providers } = useGetAuthProvidersQuery();
+  const { data: features } = useGetFeaturesQuery();
   const [login, { isLoading }] = useLoginMutation();
 
   const [email, setEmail] = useState("");
@@ -91,7 +91,7 @@ export function LoginPage() {
             </Button>
           </form>
 
-          {providers?.google && (
+          {features?.google && (
             <>
               <div className="my-4 flex items-center gap-3 text-xs text-slate-400">
                 <span className="h-px flex-1 bg-slate-200" />
