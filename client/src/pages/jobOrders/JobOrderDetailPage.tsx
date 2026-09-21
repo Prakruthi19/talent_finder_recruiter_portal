@@ -12,6 +12,7 @@ import { SkillChips } from "../../components/ui/SkillChips";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { LoadingState, ErrorState, EmptyState } from "../../components/ui/PageStates";
 import { formatExperience } from "../../lib/format";
+import { useCurrentRole } from "../../hooks/useAuth";
 import type { MatchingCandidateRow } from "../../types";
 
 function AiInsightPanel({ jobOrderId, candidateId }: { jobOrderId: string; candidateId: string }) {
@@ -116,6 +117,7 @@ export function JobOrderDetailPage() {
   const { data, isLoading, isError } = useGetJobOrderMatchesQuery(id!);
   const [shortlist, { isLoading: isShortlisting }] = useShortlistCandidateMutation();
   const [deleteJobOrder] = useDeleteJobOrderMutation();
+  const isAdmin = useCurrentRole() === "ADMIN";
 
   async function handleShortlist(candidateId: string) {
     if (!id) return;
@@ -171,14 +173,16 @@ export function JobOrderDetailPage() {
             >
               <FiEdit2 className="h-4 w-4" aria-hidden="true" />
             </button>
-            <button
-              type="button"
-              aria-label="Delete job order"
-              onClick={handleDelete}
-              className="flex h-9 w-9 items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50"
-            >
-              <FiTrash2 className="h-4 w-4" aria-hidden="true" />
-            </button>
+            {isAdmin && (
+              <button
+                type="button"
+                aria-label="Delete job order"
+                onClick={handleDelete}
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+              >
+                <FiTrash2 className="h-4 w-4" aria-hidden="true" />
+              </button>
+            )}
           </div>
         </div>
 

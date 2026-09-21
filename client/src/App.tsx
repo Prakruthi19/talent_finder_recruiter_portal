@@ -1,5 +1,8 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
+import { RequireAuth } from "./components/auth/RequireAuth";
+import { LoginPage } from "./pages/auth/LoginPage";
+import { AuthCallbackPage } from "./pages/auth/AuthCallbackPage";
 import { TenantListPage } from "./pages/tenants/TenantListPage";
 import { TenantCreatePage } from "./pages/tenants/TenantCreatePage";
 import { CandidateListPage } from "./pages/candidates/CandidateListPage";
@@ -15,25 +18,30 @@ import { SubmissionListPage } from "./pages/submissions/SubmissionListPage";
 export default function App() {
   return (
     <Routes>
-      <Route element={<AppLayout />}>
-        <Route index element={<Navigate to="/candidates" replace />} />
+      <Route path="login" element={<LoginPage />} />
+      <Route path="auth/callback" element={<AuthCallbackPage />} />
 
-        <Route path="tenants" element={<TenantListPage />} />
-        <Route path="tenants/new" element={<TenantCreatePage />} />
+      <Route element={<RequireAuth />}>
+        <Route element={<AppLayout />}>
+          <Route index element={<Navigate to="/candidates" replace />} />
 
-        <Route path="candidates" element={<CandidateListPage />} />
-        <Route path="candidates/new" element={<CandidateCreatePage />} />
-        <Route path="candidates/:id" element={<CandidateDetailPage />} />
-        <Route path="candidates/:id/edit" element={<CandidateEditPage />} />
+          <Route path="tenants" element={<TenantListPage />} />
+          <Route path="tenants/new" element={<TenantCreatePage />} />
 
-        <Route path="job-orders" element={<JobOrderListPage />} />
-        <Route path="job-orders/new" element={<JobOrderCreatePage />} />
-        <Route path="job-orders/:id" element={<JobOrderDetailPage />} />
-        <Route path="job-orders/:id/edit" element={<JobOrderEditPage />} />
+          <Route path="candidates" element={<CandidateListPage />} />
+          <Route path="candidates/new" element={<CandidateCreatePage />} />
+          <Route path="candidates/:id" element={<CandidateDetailPage />} />
+          <Route path="candidates/:id/edit" element={<CandidateEditPage />} />
 
-        <Route path="submissions" element={<SubmissionListPage />} />
+          <Route path="job-orders" element={<JobOrderListPage />} />
+          <Route path="job-orders/new" element={<JobOrderCreatePage />} />
+          <Route path="job-orders/:id" element={<JobOrderDetailPage />} />
+          <Route path="job-orders/:id/edit" element={<JobOrderEditPage />} />
 
-        <Route path="*" element={<Navigate to="/candidates" replace />} />
+          <Route path="submissions" element={<SubmissionListPage />} />
+
+          <Route path="*" element={<Navigate to="/candidates" replace />} />
+        </Route>
       </Route>
     </Routes>
   );

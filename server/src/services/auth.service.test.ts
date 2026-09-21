@@ -84,6 +84,30 @@ describe("auth.login", () => {
   });
 });
 
+describe("auth.loginWithVerifiedEmail (Google sign-in)", () => {
+  beforeEach(() => {
+    findByEmail.mockReset();
+  });
+
+  it("issues a token for an existing account, matching the email case-insensitively", async () => {
+    findByEmail.mockResolvedValue(user());
+    const token = await auth.loginWithVerifiedEmail("A@B.co", true);
+    expect(findByEmail).toHaveBeenCalledWith("a@b.co");
+    expect(verifyToken(token)).toBe("user-1");
+  });
+
+  it("never trusts an unverified email, without even looking the account up", async () => {
+    await expect(auth.loginWithVerifiedEmail("a@b.co", false)).rejects.toMatchObject({ code: "unverified" });
+    expect(findByEmail).not.toHaveBeenCalled();
+  });
+
+  it("is invite-only: an unknown email does not create an account", async () => {
+    findByEmail.mockResolvedValue(null);
+    await expect(auth.loginWithVerifiedEmail("stranger@x.co", true)).rejects.toMatchObject({ code: "no_account" });
+    expect(createUser).not.toHaveBeenCalled();
+  });
+});
+
 describe("auth.requireMembership", () => {
   beforeEach(() => {
     findMembership.mockReset();

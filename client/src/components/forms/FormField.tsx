@@ -1,4 +1,4 @@
-import { InputHTMLAttributes, ReactNode } from "react";
+import { InputHTMLAttributes, ReactNode, useId } from "react";
 
 interface Props extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -8,7 +8,11 @@ interface Props extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export function FormField({ label, error, required, hint, id, className = "", ...props }: Props) {
-  const fieldId = id ?? props.name;
+  // Without a generated fallback, a field with no id/name had a <label> that
+  // pointed at nothing: clicking the label didn't focus the input and screen
+  // readers couldn't associate them.
+  const generatedId = useId();
+  const fieldId = id ?? props.name ?? generatedId;
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={fieldId} className="text-sm font-medium text-slate-700">

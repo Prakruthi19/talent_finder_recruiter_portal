@@ -7,10 +7,14 @@ import { setSelectedTenant } from "../../store/tenantSlice";
 export function TenantSelect() {
   const dispatch = useAppDispatch();
   const selectedTenantId = useAppSelector((s) => s.tenant.selectedTenantId);
+  // The server only returns the tenants this user belongs to.
   const { data } = useGetTenantsQuery({ pageSize: 100 });
 
   useEffect(() => {
-    if (!selectedTenantId && data?.items.length) {
+    if (!data?.items.length) return;
+    // Nothing selected, or the remembered tenant isn't one of this user's (a
+    // different account signed in here before, or access was removed): pick the first.
+    if (!selectedTenantId || !data.items.some((t) => t.id === selectedTenantId)) {
       dispatch(setSelectedTenant(data.items[0]!.id));
     }
   }, [selectedTenantId, data, dispatch]);

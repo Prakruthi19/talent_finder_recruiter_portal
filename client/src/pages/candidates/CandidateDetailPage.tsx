@@ -1,7 +1,8 @@
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { FiArrowLeft, FiEdit2, FiTrash2, FiDownload } from "react-icons/fi";
 import { useGetCandidateQuery, useDeleteCandidateMutation } from "../../api/candidatesApi";
-import { useAppSelector } from "../../store/hooks";
+import { useCurrentRole } from "../../hooks/useAuth";
+import { authHeaders } from "../../lib/authHeaders";
 import { API_BASE_URL } from "../../api/baseApi";
 import { Button } from "../../components/ui/Button";
 import { SkillChips } from "../../components/ui/SkillChips";
@@ -9,9 +10,10 @@ import { StatusBadge } from "../../components/ui/StatusBadge";
 import { LoadingState, ErrorState } from "../../components/ui/PageStates";
 import { formatExperience, formatDate } from "../../lib/format";
 
-async function downloadCv(candidateId: string, tenantId: string, fileName: string) {
+// A plain <a href> can't send the login token, so the file is fetched with it and saved from a blob.
+async function downloadCv(candidateId: string, fileName: string) {
   const res = await fetch(`${API_BASE_URL}/candidates/${candidateId}/cv`, {
-    headers: { "X-Tenant-Id": tenantId },
+    headers: authHeaders(),
   });
   if (!res.ok) return;
   const blob = await res.blob();
@@ -26,7 +28,7 @@ async function downloadCv(candidateId: string, tenantId: string, fileName: strin
 export function CandidateDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const tenantId = useAppSelector((s) => s.tenant.selectedTenantId);
+  const isAdmin = useCurrentRole() === "ADMIN";
   const { data: candidate, isLoading, isError } = useGetCandidateQuery(id!);
   const [deleteCandidate] = useDeleteCandidateMutation();
 
@@ -71,14 +73,16 @@ export function CandidateDetailPage() {
             >
               <FiEdit2 className="h-4 w-4" aria-hidden="true" />
             </button>
-            <button
-              type="button"
-              aria-label="Delete candidate"
-              onClick={handleDelete}
-              className="flex h-9 w-9 items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50"
-            >
-              <FiTrash2 className="h-4 w-4" aria-hidden="true" />
-            </button>
+            {isAdmin && (
+              <button
+                type="button"
+                aria-label="Delete candidate"
+                onClick={handleDelete}
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+              >
+                <FiTrash2 className="h-4 w-4" aria-hidden="true" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -89,11 +93,11 @@ export function CandidateDetailPage() {
 
         <div className="mt-5">
           <h2 className="mb-2 text-sm font-semibold text-slate-700">CV</h2>
-          {candidate.cvPath && candidate.cvOriginalName && tenantId ? (
+          {candidate.cvPath && candidate.cvOriginalName ? (
             <Button
               type="button"
               variant="secondary"
-              onClick={() => downloadCv(candidate.id, tenantId, candidate.cvOriginalName!)}
+              onClick={() => downloadCv(candidate.id, candidate.cvOriginalName!)}
             >
               <FiDownload className="h-4 w-4" aria-hidden="true" />
               Download {candidate.cvOriginalName}

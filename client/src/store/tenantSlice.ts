@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { logout } from "./authSlice";
 
 const STORAGE_KEY = "talent-finder:selectedTenantId";
 
@@ -30,6 +31,17 @@ const tenantSlice = createSlice({
         // ignore storage failures (private browsing etc.)
       }
     },
+  },
+  // The next person to sign in on this browser must not inherit the last user's tenant.
+  extraReducers: (builder) => {
+    builder.addCase(logout, (state) => {
+      state.selectedTenantId = null;
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // ignore
+      }
+    });
   },
 });
 

@@ -31,7 +31,8 @@ export const tenantsApi = baseApi.injectEndpoints({
     /** useCreateTenantMutation() -> POST /api/tenants -> tenant.controller.create -> tenant.service.create (checks name uniqueness) -> tenant.repository.create (Prisma) */
     createTenant: builder.mutation<Tenant, { name: string }>({
       query: (body) => ({ url: "/tenants", method: "POST", body }),
-      invalidatesTags: ["Tenant", { type: "Tenant", id: "SUMMARY" }],
+      // "Me" too: creating a tenant makes you its admin, so your role list changes.
+      invalidatesTags: ["Tenant", { type: "Tenant", id: "SUMMARY" }, "Me"],
     }),
     /** GET /api/tenants/summary -> tenant.controller.summary -> tenant.service.summary (2 Prisma counts) */
     getTenantSummary: builder.query<TenantSummary, void>({
