@@ -1,8 +1,5 @@
-import { candidateRepository } from "../repositories/candidate.repository";
-import { jobOrderRepository } from "../repositories/jobOrder.repository";
-import { NotFoundError } from "../lib/errors";
 import { generateChatCompletion } from "../lib/aiProvider";
-import { computeMatch } from "./skillMatching";
+import { loadMatchContext } from "./matchContext";
 
 function buildPrompt(input: {
   candidateName: string;
@@ -44,18 +41,11 @@ export const aiInsightService = {
    * on this; it's a recruiter-facing explanation layered on top.
    */
   async generateMatchInsight(tenantId: string, jobOrderId: string, candidateId: string) {
-    const [jobOrder, candidate] = await Promise.all([
-      jobOrderRepository.findById(tenantId, jobOrderId),
-      candidateRepository.findById(tenantId, candidateId),
-    ]);
-    if (!jobOrder) throw new NotFoundError("Job order");
-    if (!candidate) throw new NotFoundError("Candidate");
-
-    const { matchedSkillNames } = computeMatch(candidate.skills, jobOrder.requiredSkills);
-    const matchedSet = new Set(matchedSkillNames);
-    const missingSkillNames = jobOrder.requiredSkills
-      .map((r) => r.skill.name)
-      .filter((name) => !matchedSet.has(name));
+    const { jobOrder, candidate, matchedSkillNames, missingSkillNames } = await loadMatchContext(
+      tenantId,
+      jobOrderId,
+      candidateId
+    );
 
     const messages = buildPrompt({
       candidateName: candidate.fullName,

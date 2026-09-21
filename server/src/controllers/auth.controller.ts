@@ -6,7 +6,10 @@ import { getUserId } from "../middleware/auth";
 export const authController = {
   async login(req: Request, res: Response) {
     const { email, password } = loginSchema.parse(req.body);
-    res.json(await authService.login(email, password));
+    const result = await authService.login(email, password);
+    // A login has no req.user yet; this is how the audit trail learns who just signed in.
+    res.locals.actorId = result.user.id;
+    res.json(result);
   },
 
   async me(req: Request, res: Response) {
