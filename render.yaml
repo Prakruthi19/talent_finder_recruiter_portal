@@ -68,3 +68,29 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
+    # Security headers for the static site. The API sets its own (helmet) —
+    # these are unrelated and don't need to match. connect-src names the API
+    # origin because the client calls it cross-origin (VITE_API_BASE_URL);
+    # style-src allows 'unsafe-inline' only for the Dashboard's inline
+    # `style={{width}}` bars, nothing else. Unverified until the next deploy —
+    # Render doesn't apply blueprint header changes to an existing service
+    # without a redeploy.
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: geolocation=(), camera=(), microphone=(), payment=()
+      - path: /*
+        name: Content-Security-Policy
+        value: >-
+          default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';
+          img-src 'self' data:; font-src 'self'; connect-src 'self' https://talent-finder-api.onrender.com;
+          frame-ancestors 'none'; base-uri 'self'; object-src 'none'

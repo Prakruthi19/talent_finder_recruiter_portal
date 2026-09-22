@@ -48,7 +48,9 @@ export interface Candidate {
   phone: string | null;
   location: string | null;
   experienceYears: string;
-  cvPath: string | null;
+  // No cvPath: that's the file's real path on the server's disk, and the API
+  // never sends it (candidate.controller.ts strips it). cvOriginalName alone
+  // tells you whether a CV was uploaded.
   cvOriginalName: string | null;
   createdAt: string;
   updatedAt: string;

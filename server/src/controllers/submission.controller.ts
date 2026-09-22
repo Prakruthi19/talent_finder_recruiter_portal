@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { submissionService } from "../services/submission.service";
 import { submissionListQuerySchema, shortlistCandidateSchema } from "../schemas/submission.schema";
+import { uuidParamSchema } from "../schemas/common.schema";
 import { AppError } from "../lib/errors";
 
 function requireTenantId(req: Request): string {
@@ -27,7 +28,7 @@ export const submissionController = {
     const { candidateId } = shortlistCandidateSchema.parse(req.body);
     const submission = await submissionService.shortlist(
       tenantId,
-      req.params.jobOrderId as string,
+      uuidParamSchema.parse(req.params.jobOrderId),
       candidateId
     );
     res.status(201).json(submission);

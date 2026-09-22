@@ -96,7 +96,9 @@ export function CandidateDetailPage() {
 
         <div className="mt-5">
           <h2 className="mb-2 text-sm font-semibold text-slate-700">CV</h2>
-          {candidate.cvPath && candidate.cvOriginalName ? (
+          {/* cvPath (the server's disk path) is never sent to the client; a CV's presence
+              is just whether it has an original filename. */}
+          {candidate.cvOriginalName ? (
             <Button
               type="button"
               variant="secondary"

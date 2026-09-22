@@ -11,6 +11,28 @@ export class CvReadError extends Error {
 
 const XML_ENTITIES: Record<string, string> = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&apos;": "'" };
 
+// A .docx is a zip: DEFLATE can decompress a small file into a much larger one
+// ("zip bomb"), and multer's 5MB upload cap does nothing to limit that. Two
+// independent bounds, both checked without any JSZip-internal API:
+// - ENTRY COUNT is known from the central directory alone, before anything is
+//   decompressed, so this check is free and always accurate.
+// - DECOMPRESSED CHARACTERS is checked right after each individual entry we
+//   read is turned into a string, so a bomb is caught after inflating at most
+//   one entry, not the whole archive. (mammoth's own internal unzip, used for
+//   the document body, isn't covered by this — it has no such hook to offer.)
+const MAX_DOCX_ENTRIES = 2000;
+const MAX_DECOMPRESSED_CHARS = 5_000_000;
+
+function assertReasonableEntryCount(zip: JSZip): void {
+  if (Object.keys(zip.files).length > MAX_DOCX_ENTRIES) throw new CvReadError("corrupt");
+}
+
+async function readXmlEntry(zip: JSZip, name: string): Promise<string> {
+  const text = await zip.files[name]!.async("string");
+  if (text.length > MAX_DECOMPRESSED_CHARS) throw new CvReadError("corrupt");
+  return text;
+}
+
 /** Text runs of a WordprocessingML fragment, one paragraph per line. */
 function wordXmlToText(xml: string): string {
   return xml
@@ -30,20 +52,18 @@ function wordXmlToText(xml: string): string {
  * boxes. Many Word resumes put the name and contact details in exactly those
  * places, so without this the name/email/phone are simply missing.
  */
-async function docxExtras(buffer: Buffer): Promise<{ header: string[]; other: string[] }> {
-  const zip = await JSZip.loadAsync(buffer);
+async function docxExtras(zip: JSZip): Promise<{ header: string[]; other: string[] }> {
   const header: string[] = [];
   const other: string[] = [];
 
   for (const name of Object.keys(zip.files)) {
     if (!/^word\/(header|footer)\d*\.xml$/.test(name)) continue;
-    const text = wordXmlToText(await zip.files[name]!.async("string"));
+    const text = wordXmlToText(await readXmlEntry(zip, name));
     (name.includes("header") ? header : other).push(...text.split("\n"));
   }
 
-  const document = zip.file("word/document.xml");
-  if (document) {
-    const xml = (await document.async("string")).replace(/<mc:Fallback>[\s\S]*?<\/mc:Fallback>/g, "");
+  if (zip.file("word/document.xml")) {
+    const xml = (await readXmlEntry(zip, "word/document.xml")).replace(/<mc:Fallback>[\s\S]*?<\/mc:Fallback>/g, "");
     for (const box of xml.match(/<w:txbxContent>[\s\S]*?<\/w:txbxContent>/g) ?? []) {
       other.push(...wordXmlToText(box).split("\n"));
     }
@@ -52,14 +72,20 @@ async function docxExtras(buffer: Buffer): Promise<{ header: string[]; other: st
 }
 
 async function extractDocxText(buffer: Buffer): Promise<string> {
+  // Parsing the central directory only (cheap, nothing decompressed yet) lets
+  // the entry-count bound run before mammoth or anything else touches this file.
+  const zip = await JSZip.loadAsync(buffer);
+  assertReasonableEntryCount(zip);
+
   const body = (await mammoth.extractRawText({ buffer })).value ?? "";
   const bodyLines = new Set(body.split("\n").map((l) => l.trim()));
   // Extras that aren't already in the body: headers go first (that is where the name lives).
   let extras: { header: string[]; other: string[] } = { header: [], other: [] };
   try {
-    extras = await docxExtras(buffer);
-  } catch {
-    // The body text alone is still a usable result.
+    extras = await docxExtras(zip);
+  } catch (err) {
+    if (err instanceof CvReadError) throw err;
+    // Anything else here: the body text alone is still a usable result.
   }
   const fresh = (lines: string[]) => lines.filter((l) => l && !bodyLines.has(l));
   return [...fresh(extras.header), body, ...fresh(extras.other)].join("\n");

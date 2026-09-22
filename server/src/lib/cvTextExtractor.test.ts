@@ -58,4 +58,28 @@ describe("extractCvText (docx)", () => {
     });
     await expect(extractCvText(Buffer.from("not a pdf"), "pdf")).rejects.toBeInstanceOf(CvReadError);
   });
+
+  describe("zip bomb guards", () => {
+    it("rejects a .docx with an unreasonable number of entries, before decompressing anything", async () => {
+      const zip = new JSZip();
+      zip.file("word/document.xml", `<?xml version="1.0"?><w:document ${W}><w:body>${paragraph("x")}</w:body></w:document>`);
+      for (let i = 0; i < 2001; i++) zip.file(`junk/${i}.txt`, "x");
+      const buffer = await zip.generateAsync({ type: "nodebuffer" });
+
+      await expect(extractCvText(buffer, "docx")).rejects.toMatchObject({ constructor: CvReadError, reason: "corrupt" });
+    });
+
+    it("rejects a single entry that decompresses far beyond a real resume's size", async () => {
+      // A real zip bomb: a few MB of highly-compressible repeated bytes that inflate to
+      // tens of MB. DEFLATE compresses this so well the *input* buffer stays tiny.
+      const buffer = await buildDocx({ body: paragraph("cover text"), header: paragraph("A".repeat(6_000_000)) });
+
+      await expect(extractCvText(buffer, "docx")).rejects.toMatchObject({ constructor: CvReadError, reason: "corrupt" });
+    });
+
+    it("does not reject an ordinary resume-sized .docx", async () => {
+      const text = await extractCvText(await buildDocx({ body: paragraph("A perfectly normal resume.") }), "docx");
+      expect(text).toContain("A perfectly normal resume.");
+    });
+  });
 });

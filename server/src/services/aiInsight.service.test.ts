@@ -61,17 +61,33 @@ describe("aiInsightService.generateMatchInsight", () => {
       location: "Bangalore",
       skills: [skill("node.js"), skill("react")],
     });
-    generateChatCompletion.mockResolvedValue("Jane is a strong fit for the node.js requirement.");
+    generateChatCompletion.mockResolvedValue("The candidate is a strong fit for the node.js requirement.");
 
     const result = await aiInsightService.generateMatchInsight("tenant-1", "job-1", "cand-1");
 
-    expect(result).toEqual({ insight: "Jane is a strong fit for the node.js requirement." });
+    expect(result).toEqual({ insight: "The candidate is a strong fit for the node.js requirement." });
     expect(generateChatCompletion).toHaveBeenCalledTimes(1);
 
     const [messages] = generateChatCompletion.mock.calls[0] as [{ role: string; content: string }[]];
     const userMessage = messages.find((m) => m.role === "user")!.content;
-    expect(userMessage).toContain("Jane Doe");
     expect(userMessage).toContain("Matched required skills: node.js");
     expect(userMessage).toContain("Missing required skills: sql, aws");
+  });
+
+  it("never sends the candidate's name to the AI provider", async () => {
+    findJobOrderById.mockResolvedValue({ id: "job-1", title: "Backend Engineer", minExperience: "3", requiredSkills: [] });
+    findCandidateById.mockResolvedValue({
+      id: "cand-1",
+      fullName: "Jane Doe",
+      experienceYears: "5",
+      location: "Bangalore",
+      skills: [],
+    });
+    generateChatCompletion.mockResolvedValue("A reasonable fit.");
+
+    await aiInsightService.generateMatchInsight("tenant-1", "job-1", "cand-1");
+
+    const [messages] = generateChatCompletion.mock.calls[0] as [{ role: string; content: string }[]];
+    expect(JSON.stringify(messages)).not.toContain("Jane");
   });
 });

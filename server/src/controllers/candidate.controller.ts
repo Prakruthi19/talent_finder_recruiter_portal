@@ -7,6 +7,7 @@ import {
   createCandidateSchema,
   updateCandidateSchema,
 } from "../schemas/candidate.schema";
+import { uuidParamSchema } from "../schemas/common.schema";
 import { AppError, NotFoundError, ValidationError } from "../lib/errors";
 import { verifyCvFileType } from "../lib/fileTypeCheck";
 
@@ -15,12 +16,23 @@ function requireTenantId(req: Request): string {
   return req.tenantId;
 }
 
+/**
+ * `cvPath` is the file's real path on the server's disk — internal plumbing a
+ * client has no use for and shouldn't see. Only ever stripped here, at the
+ * response boundary: the service layer still needs the real path to read,
+ * download and delete the file.
+ */
+function omitCvPath<T extends { cvPath?: string | null }>(candidate: T): Omit<T, "cvPath"> {
+  const { cvPath: _cvPath, ...rest } = candidate;
+  return rest;
+}
+
 export const candidateController = {
   async list(req: Request, res: Response) {
     const tenantId = requireTenantId(req);
     const query = candidateListQuerySchema.parse(req.query);
     const result = await candidateService.list(tenantId, query);
-    res.json(result);
+    res.json({ ...result, items: result.items.map(omitCvPath) });
   },
 
   async summary(req: Request, res: Response) {
@@ -31,8 +43,8 @@ export const candidateController = {
 
   async getById(req: Request, res: Response) {
     const tenantId = requireTenantId(req);
-    const candidate = await candidateService.getById(tenantId, req.params.id as string);
-    res.json(candidate);
+    const candidate = await candidateService.getById(tenantId, uuidParamSchema.parse(req.params.id));
+    res.json(omitCvPath(candidate));
   },
 
   async create(req: Request, res: Response) {
@@ -72,25 +84,25 @@ export const candidateController = {
         throw err;
       });
 
-    res.status(201).json(candidate);
+    res.status(201).json(omitCvPath(candidate));
   },
 
   async update(req: Request, res: Response) {
     const tenantId = requireTenantId(req);
     const body = updateCandidateSchema.parse(req.body);
-    const candidate = await candidateService.update(tenantId, req.params.id as string, body);
-    res.json(candidate);
+    const candidate = await candidateService.update(tenantId, uuidParamSchema.parse(req.params.id), body);
+    res.json(omitCvPath(candidate));
   },
 
   async remove(req: Request, res: Response) {
     const tenantId = requireTenantId(req);
-    await candidateService.delete(tenantId, req.params.id as string);
+    await candidateService.delete(tenantId, uuidParamSchema.parse(req.params.id));
     res.status(204).send();
   },
 
   async downloadCv(req: Request, res: Response) {
     const tenantId = requireTenantId(req);
-    const candidate = await candidateService.getById(tenantId, req.params.id as string);
+    const candidate = await candidateService.getById(tenantId, uuidParamSchema.parse(req.params.id));
     if (!candidate.cvPath) throw new NotFoundError("CV");
     res.download(candidate.cvPath, candidate.cvOriginalName ?? "cv");
   },
