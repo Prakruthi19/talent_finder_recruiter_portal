@@ -15,7 +15,9 @@ const OAUTH_ERRORS: Record<string, string> = {
   failed: "Google sign-in failed. Please try again.",
 };
 
-// Demo shortcuts exist only in development builds, never in a production bundle.
+// Shown on every build, including production — this is a demo/interview app with
+// seeded demo accounts, not a real recruiter's data, so a one-click login for
+// reviewers is worth more here than hiding the credentials.
 const DEMO_LOGINS = [
   { label: "Admin", email: "admin@talentfinder.demo", password: "Admin@12345" },
   { label: "Recruiter", email: "recruiter@talentfinder.demo", password: "Recruit@12345" },
@@ -110,26 +112,24 @@ export function LoginPage() {
           )}
         </div>
 
-        {import.meta.env.DEV && (
-          <div className="mt-4 rounded-md border border-dashed border-slate-300 p-3 text-center text-xs text-slate-500">
-            Demo logins (dev only):
-            <div className="mt-2 flex justify-center gap-2">
-              {DEMO_LOGINS.map((demo) => (
-                <Button
-                  key={demo.email}
-                  type="button"
-                  variant="secondary"
-                  onClick={() => {
-                    setEmail(demo.email);
-                    setPassword(demo.password);
-                  }}
-                >
-                  {demo.label}
-                </Button>
-              ))}
-            </div>
+        <div className="mt-4 rounded-md border border-dashed border-slate-300 p-3 text-center text-xs text-slate-500">
+          Demo logins:
+          <div className="mt-2 flex justify-center gap-2">
+            {DEMO_LOGINS.map((demo) => (
+              <Button
+                key={demo.email}
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setEmail(demo.email);
+                  setPassword(demo.password);
+                }}
+              >
+                {demo.label}
+              </Button>
+            ))}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

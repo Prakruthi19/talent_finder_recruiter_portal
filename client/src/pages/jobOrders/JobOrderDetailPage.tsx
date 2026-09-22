@@ -78,9 +78,16 @@ function TopMatchesChart({ candidates, totalRequired }: { candidates: MatchingCa
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Top matches</h3>
       <div className="flex flex-col gap-2">
         {top.map((row) => (
-          <div key={row.candidate.id}>
+          <Link
+            key={row.candidate.id}
+            to={`/candidates/${row.candidate.id}`}
+            className="block rounded-md -mx-1 px-1 py-0.5 transition-colors hover:bg-brand-50"
+            title={`${row.candidate.fullName}: ${row.matchCount} of ${totalRequired} required skills`}
+          >
             <div className="mb-0.5 flex items-center justify-between text-xs">
-              <span className="font-medium text-slate-700">{row.candidate.fullName}</span>
+              <span className="font-medium text-slate-700 hover:text-brand-700 hover:underline">
+                {row.candidate.fullName}
+              </span>
               <span className="text-slate-500">
                 {row.matchCount}/{totalRequired}
               </span>
@@ -89,17 +96,16 @@ function TopMatchesChart({ candidates, totalRequired }: { candidates: MatchingCa
               <div
                 className="h-5 rounded-r-[4px] bg-brand-600 transition-[width]"
                 style={{ width: `${Math.min(100, (row.matchCount / totalRequired) * 100)}%` }}
-                title={`${row.candidate.fullName}: ${row.matchCount} of ${totalRequired} required skills`}
               />
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>
   );
 }
 
-function MatchRow({
+function MatchCard({
   jobOrderId,
   row,
   onShortlist,
@@ -112,27 +118,29 @@ function MatchRow({
 }) {
   const matchedSet = new Set(row.matchedSkillNames.map((s) => s.toLowerCase()));
   return (
-    <li className="flex flex-col gap-3 border-b border-slate-100 py-4 last:border-0 sm:flex-row sm:items-start sm:justify-between">
-      <div className="flex-1">
-        <Link
-          to={`/candidates/${row.candidate.id}`}
-          className="font-medium text-slate-900 hover:text-brand-700 hover:underline"
-        >
-          {row.candidate.fullName}
-        </Link>
-        <p className="text-xs text-slate-500">
-          {row.candidate.location || "Location not set"} · {formatExperience(row.candidate.experienceYears)}
-        </p>
-        <div className="mt-2">
-          <SkillChips skills={row.candidate.skills.map((s) => s.skill.name)} highlight={matchedSet} />
+    <div className="flex h-full flex-col rounded-md border border-slate-200 bg-white p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <Link
+            to={`/candidates/${row.candidate.id}`}
+            className="block truncate font-medium text-slate-900 hover:text-brand-700 hover:underline"
+          >
+            {row.candidate.fullName}
+          </Link>
+          <p className="truncate text-xs text-slate-500">
+            {row.candidate.location || "Location not set"} · {formatExperience(row.candidate.experienceYears)}
+          </p>
         </div>
-        <AiInsightPanel jobOrderId={jobOrderId} candidateId={row.candidate.id} />
-        <MatchAiActions jobOrderId={jobOrderId} candidateId={row.candidate.id} />
-      </div>
-      <div className="flex items-center gap-3 sm:flex-col sm:items-end">
-        <span className="text-sm font-semibold text-brand-700">
-          {row.matchCount} skill{row.matchCount === 1 ? "" : "s"} matched
+        <span className="whitespace-nowrap text-xs font-semibold text-brand-700">
+          {row.matchCount} skill{row.matchCount === 1 ? "" : "s"}
         </span>
+      </div>
+
+      <div className="mt-2">
+        <SkillChips skills={row.candidate.skills.map((s) => s.skill.name)} highlight={matchedSet} max={6} />
+      </div>
+
+      <div className="mt-3">
         {row.shortlisted ? (
           <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700">
             <FiCheckCircle className="h-4 w-4" aria-hidden="true" />
@@ -148,7 +156,11 @@ function MatchRow({
           </Button>
         )}
       </div>
-    </li>
+
+      {/* AI panels stay click-to-reveal, so a card's height doesn't grow until you ask for it. */}
+      <AiInsightPanel jobOrderId={jobOrderId} candidateId={row.candidate.id} />
+      <MatchAiActions jobOrderId={jobOrderId} candidateId={row.candidate.id} />
+    </div>
   );
 }
 
@@ -182,7 +194,7 @@ export function JobOrderDetailPage() {
   const { jobOrder, matchingCandidates, shortlistedCandidates } = data;
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-3">
+    <div className="mx-auto flex max-w-6xl flex-col gap-3">
       <button
         type="button"
         onClick={() => navigate("/job-orders")}
@@ -242,9 +254,9 @@ export function JobOrderDetailPage() {
         {matchingCandidates.length === 0 ? (
           <EmptyState label="No candidates in this tenant match the required skills yet." />
         ) : (
-          <ul>
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
             {matchingCandidates.map((row) => (
-              <MatchRow
+              <MatchCard
                 key={row.candidate.id}
                 jobOrderId={jobOrder.id}
                 row={row}
@@ -252,7 +264,7 @@ export function JobOrderDetailPage() {
                 isShortlisting={isShortlisting}
               />
             ))}
-          </ul>
+          </div>
         )}
       </div>
 
