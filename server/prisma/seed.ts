@@ -90,7 +90,7 @@ async function main() {
   // The tenant-owned tables are protected by row-level security, which would make a
   // deleteMany() with no tenant context delete nothing. TRUNCATE isn't row-filtered.
   await prisma.$executeRawUnsafe(
-    "TRUNCATE TABLE audit_logs, submissions, job_order_required_skills, candidate_skills, job_orders, candidates"
+    "TRUNCATE TABLE audit_logs, interviews, submissions, job_order_required_skills, candidate_skills, job_orders, candidates"
   );
   await prisma.membership.deleteMany();
   await prisma.user.deleteMany();
