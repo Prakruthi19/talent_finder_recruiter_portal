@@ -9,18 +9,34 @@ function requireTenantId(req: Request): string {
   return req.tenantId;
 }
 
+/** `cvPath` is the candidate's file path on the server's disk — not for the client. See candidate.controller.ts. */
+function omitCvPath<T extends { cvPath?: string | null }>(candidate: T): Omit<T, "cvPath"> {
+  const { cvPath: _cvPath, ...rest } = candidate;
+  return rest;
+}
+
+function omitSubmissionCvPath<T extends { candidate: { cvPath?: string | null } }>(submission: T) {
+  return { ...submission, candidate: omitCvPath(submission.candidate) };
+}
+
 export const submissionController = {
   async list(req: Request, res: Response) {
     const tenantId = requireTenantId(req);
     const query = submissionListQuerySchema.parse(req.query);
     const result = await submissionService.list(tenantId, query);
-    res.json(result);
+    res.json({ ...result, items: result.items.map(omitSubmissionCvPath) });
   },
 
   async summary(req: Request, res: Response) {
     const tenantId = requireTenantId(req);
     const result = await submissionService.summary(tenantId);
     res.json(result);
+  },
+
+  async getById(req: Request, res: Response) {
+    const tenantId = requireTenantId(req);
+    const submission = await submissionService.getById(tenantId, uuidParamSchema.parse(req.params.id));
+    res.json(omitSubmissionCvPath(submission));
   },
 
   async shortlist(req: Request, res: Response) {
@@ -31,6 +47,6 @@ export const submissionController = {
       uuidParamSchema.parse(req.params.jobOrderId),
       candidateId
     );
-    res.status(201).json(submission);
+    res.status(201).json(omitSubmissionCvPath(submission));
   },
 };

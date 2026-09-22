@@ -1,7 +1,8 @@
 import { baseApi } from "./baseApi";
-import type { CandidateSearchResult, JobDescriptionDraft, OutreachDraft } from "../types";
+import type { CandidateSearchResult, JobDescriptionDraft, OutreachDraft, RecommendedPick } from "../types";
 
 type Tone = "friendly" | "formal";
+type InterviewMessageKind = "confirmation" | "reminder";
 
 // Every AI call goes through POST /api/ai/... which the server gates with login,
 // tenant membership and a per-user rate limit. Nothing here is cached: each is an
@@ -34,6 +35,24 @@ export const aiApi = baseApi.injectEndpoints({
     dashboardBrief: builder.mutation<{ brief: string }, void>({
       query: () => ({ url: "/ai/dashboard-brief", method: "POST" }),
     }),
+    /** Deterministic pick (highest exact skill match, not-yet-shortlisted); AI only writes the one-line reason. */
+    recommendShortlist: builder.mutation<{ pick: RecommendedPick | null }, void>({
+      query: () => ({ url: "/ai/recommend-shortlist", method: "POST" }),
+    }),
+    draftFollowUp: builder.mutation<OutreachDraft, { jobOrderId: string; candidateId: string }>({
+      query: ({ jobOrderId, candidateId }) => ({
+        url: `/ai/job-orders/${jobOrderId}/follow-up`,
+        method: "POST",
+        body: { candidateId },
+      }),
+    }),
+    draftInterviewMessage: builder.mutation<OutreachDraft, { interviewId: string; kind: InterviewMessageKind }>({
+      query: ({ interviewId, kind }) => ({
+        url: `/ai/interviews/${interviewId}/message`,
+        method: "POST",
+        body: { kind },
+      }),
+    }),
   }),
 });
 
@@ -44,4 +63,7 @@ export const {
   useInterviewQuestionsMutation,
   useSearchCandidatesMutation,
   useDashboardBriefMutation,
+  useRecommendShortlistMutation,
+  useDraftFollowUpMutation,
+  useDraftInterviewMessageMutation,
 } = aiApi;

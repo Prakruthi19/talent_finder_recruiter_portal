@@ -1,57 +1,229 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { FiZap } from "react-icons/fi";
+import { FiZap, FiCopy, FiMail } from "react-icons/fi";
 import { useGetDashboardQuery } from "../../api/dashboardApi";
 import { useGetFeaturesQuery } from "../../api/authApi";
-import { useDashboardBriefMutation } from "../../api/aiApi";
+import { useDashboardBriefMutation, useRecommendShortlistMutation, useDraftFollowUpMutation } from "../../api/aiApi";
+import { useShortlistCandidateMutation } from "../../api/jobOrdersApi";
 import { useAppSelector } from "../../store/hooks";
 import { aiErrorMessage } from "../../lib/aiErrors";
 import { TenantSelect } from "../../components/ui/TenantSelect";
 import { SummaryCard } from "../../components/ui/SummaryCard";
+import { Button } from "../../components/ui/Button";
+import { StatusBadge } from "../../components/ui/StatusBadge";
 import { EmptyState, ErrorState, LoadingState } from "../../components/ui/PageStates";
-import type { DashboardOverview } from "../../types";
+import type { DashboardOverview, OutreachDraft, RecommendedPick } from "../../types";
 
 const statusLabel = (status: string) => {
   const text = status.toLowerCase().replace(/_/g, " ");
   return text.charAt(0).toUpperCase() + text.slice(1);
 };
 
-const card = "rounded-md border border-slate-200 bg-white p-4 shadow-sm";
+// Ordinal stage order: position carries meaning (further along the pipeline), so
+// it's one hue getting darker, not a categorical palette — HIRED/REJECTED are
+// terminal outcomes, not "further along," so they get the app's own status
+// colors (StatusBadge) instead of continuing the ramp. Steps validated with
+// dataviz's ordinal check (node scripts/validate_palette.js --ordinal): brand
+// 400/500/700/900 is the widest-spaced 4-step run this ramp supports cleanly.
+const PIPELINE_STAGES: { status: string; barClass: string }[] = [
+  { status: "SHORTLISTED", barClass: "bg-brand-400" },
+  { status: "SUBMITTED_TO_CLIENT", barClass: "bg-brand-500" },
+  { status: "INTERVIEWING", barClass: "bg-brand-700" },
+  { status: "OFFERED", barClass: "bg-brand-900" },
+];
 
-function SkillDemandCard({ gaps }: { gaps: DashboardOverview["skillGaps"] }) {
-  // One shared scale, so a bar's length means the same thing on every row.
-  const max = Math.max(1, ...gaps.flatMap((g) => [g.demand, g.supply]));
+function PipelineChart({ pipeline }: { pipeline: DashboardOverview["pipeline"] }) {
+  const counts = new Map(pipeline.map((p) => [p.status, p.count]));
+  const stageCounts = PIPELINE_STAGES.map((s) => counts.get(s.status) ?? 0);
+  const max = Math.max(1, ...stageCounts);
+  const hired = counts.get("HIRED") ?? 0;
+  const rejected = counts.get("REJECTED") ?? 0;
+
   return (
-    <section className={card} aria-labelledby="gaps-title">
-      <h2 id="gaps-title" className="text-base font-semibold text-slate-900">Skills in demand</h2>
-      <p className="mb-3 text-xs text-slate-500">
-        What your open roles need, against the candidates you have. Scarcest first.
+    <div className="mt-2 flex flex-col gap-2.5">
+      {PIPELINE_STAGES.map((s, i) => {
+        const count = stageCounts[i] ?? 0;
+        return (
+          <div key={s.status}>
+            <div className="mb-1 flex items-center justify-between text-xs">
+              <span className="font-medium text-slate-700">{statusLabel(s.status)}</span>
+              <span className="text-slate-500">{count}</span>
+            </div>
+            <div className="h-6 w-full overflow-hidden rounded-md bg-slate-100">
+              <div
+                className={`h-6 rounded-r-[4px] transition-[width] ${s.barClass}`}
+                style={{ width: `${(count / max) * 100}%` }}
+                title={`${statusLabel(s.status)}: ${count}`}
+              />
+            </div>
+          </div>
+        );
+      })}
+      {(hired > 0 || rejected > 0) && (
+        <div className="mt-1 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-2.5">
+          {hired > 0 && (
+            <span className="inline-flex items-center gap-1.5">
+              <StatusBadge status="HIRED" />
+              <span className="text-xs text-slate-500">×{hired}</span>
+            </span>
+          )}
+          {rejected > 0 && (
+            <span className="inline-flex items-center gap-1.5">
+              <StatusBadge status="REJECTED" />
+              <span className="text-xs text-slate-500">×{rejected}</span>
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const card = "rounded-md border border-slate-200 bg-white p-4 shadow-sm";
+const linkButton =
+  "inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-800 disabled:opacity-50";
+
+function daysAgo(iso: string): number {
+  return Math.floor((Date.now() - new Date(iso).getTime()) / (24 * 60 * 60 * 1000));
+}
+
+/** Draft + copy block shared by the stale-submission nudge and (later) interview messages. */
+function DraftBlock({ draft }: { draft: OutreachDraft }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(`Subject: ${draft.subject}\n\n${draft.body}`);
+      setCopied(true);
+    } catch {
+      // Clipboard permission denied or unavailable — the text is still on screen to select by hand.
+    }
+  }
+  return (
+    <div className="mt-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
+      <p className="text-xs font-semibold text-slate-700">Subject: {draft.subject}</p>
+      <p className="mt-1.5 whitespace-pre-line text-xs text-slate-700">{draft.body}</p>
+      <div className="mt-2 flex items-center gap-3">
+        <button type="button" onClick={copy} className={linkButton}>
+          <FiCopy className="h-3.5 w-3.5" aria-hidden="true" />
+          {copied ? "Copied" : "Copy"}
+        </button>
+        <span className="text-xs text-slate-400">A draft only. Nothing is sent from here.</span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Matching stays deterministic (dashboardRepository.topUnshortlistedPairing picks the highest
+ * exact-match, not-yet-shortlisted pairing); the AI only writes the one-line reason.
+ */
+function RecommendedShortlistCard() {
+  const { data: features } = useGetFeaturesQuery();
+  const [suggest, { isLoading }] = useRecommendShortlistMutation();
+  const [shortlist, { isLoading: isShortlisting }] = useShortlistCandidateMutation();
+  const [pick, setPick] = useState<RecommendedPick | null>();
+  const [error, setError] = useState<string>();
+
+  if (!features?.ai) return null;
+
+  async function handleSuggest() {
+    setError(undefined);
+    try {
+      setPick((await suggest().unwrap()).pick);
+    } catch (err) {
+      setError(aiErrorMessage(err));
+    }
+  }
+
+  async function handleShortlist() {
+    if (!pick) return;
+    setError(undefined);
+    try {
+      await shortlist({ jobOrderId: pick.jobOrderId, candidateId: pick.candidateId }).unwrap();
+      setPick(undefined);
+    } catch {
+      setError("Couldn't shortlist this candidate — they may already be shortlisted.");
+    }
+  }
+
+  return (
+    <section className={card} aria-labelledby="recommend-title">
+      <div className="flex items-center justify-between gap-2">
+        <h2 id="recommend-title" className="text-base font-semibold text-slate-900">Recommended next shortlist</h2>
+        <button type="button" onClick={handleSuggest} disabled={isLoading} className={linkButton}>
+          <FiZap className="h-3.5 w-3.5" aria-hidden="true" />
+          {isLoading ? "Thinking..." : pick ? "Suggest another" : "Suggest a pick"}
+        </button>
+      </div>
+      <p className="mb-1 text-xs text-slate-500">
+        The strongest not-yet-shortlisted match for an open role, ranked by exact skill match.
       </p>
-      {gaps.length === 0 ? (
-        <EmptyState label="No open job orders yet." />
+      {pick === null && <EmptyState label="No open, unshortlisted matches right now." />}
+      {pick && (
+        <div className="mt-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
+          <p className="text-sm font-medium text-slate-900">
+            {pick.candidateName} <span className="font-normal text-slate-500">for</span> {pick.jobOrderTitle}
+          </p>
+          <p className="mt-1 text-xs text-slate-600">{pick.reason}</p>
+          <p className="mt-1 text-xs text-slate-400">
+            {pick.matchCount} matched skill{pick.matchCount === 1 ? "" : "s"}
+          </p>
+          <Button variant="secondary" className="mt-2" disabled={isShortlisting} onClick={handleShortlist}>
+            {isShortlisting ? "Shortlisting..." : "Shortlist"}
+          </Button>
+        </div>
+      )}
+      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+    </section>
+  );
+}
+
+/** Finding the stale submission is free (part of the dashboard query); drafting the follow-up is the paid, click-triggered step. */
+function StaleSubmissionCard({ submission }: { submission: DashboardOverview["staleSubmission"] }) {
+  const { data: features } = useGetFeaturesQuery();
+  const [draftFollowUp, { isLoading }] = useDraftFollowUpMutation();
+  const [draft, setDraft] = useState<OutreachDraft>();
+  const [error, setError] = useState<string>();
+
+  async function handleDraft() {
+    if (!submission) return;
+    setError(undefined);
+    try {
+      setDraft(await draftFollowUp({ jobOrderId: submission.jobOrderId, candidateId: submission.candidateId }).unwrap());
+    } catch (err) {
+      setError(aiErrorMessage(err));
+    }
+  }
+
+  return (
+    <section className={card} aria-labelledby="stale-title">
+      <h2 id="stale-title" className="text-base font-semibold text-slate-900">Going quiet</h2>
+      <p className="mb-2 text-xs text-slate-500">The longest-untouched submission still in progress (7+ days, no status change).</p>
+      {!submission ? (
+        <EmptyState label="Nothing's gone quiet — every active submission has moved recently." />
       ) : (
-        <ul className="flex flex-col gap-3">
-          {gaps.map((g) => (
-            <li key={g.skill}>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium capitalize text-slate-800">{g.skill}</span>
-                {g.supply <= g.demand && (
-                  <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-                    Scarce
-                  </span>
-                )}
-              </div>
-              <div className="mt-1 flex flex-col gap-1" aria-hidden="true">
-                <div className="h-1.5 rounded bg-slate-100"><div className="h-1.5 rounded bg-brand-500" style={{ width: `${(g.demand / max) * 100}%` }} /></div>
-                <div className="h-1.5 rounded bg-slate-100"><div className="h-1.5 rounded bg-emerald-500" style={{ width: `${(g.supply / max) * 100}%` }} /></div>
-              </div>
-              <p className="mt-1 text-xs text-slate-500">
-                <span className="text-brand-700">{g.demand} open role{g.demand === 1 ? "" : "s"}</span> need it ·{" "}
-                <span className="text-emerald-700">{g.supply} candidate{g.supply === 1 ? "" : "s"}</span> have it
-              </p>
-            </li>
-          ))}
-        </ul>
+        <div>
+          <p className="text-sm font-medium text-slate-900">
+            <Link to={`/candidates/${submission.candidateId}`} className="hover:text-brand-700 hover:underline">
+              {submission.candidate?.fullName}
+            </Link>{" "}
+            <span className="font-normal text-slate-500">for</span>{" "}
+            <Link to={`/job-orders/${submission.jobOrderId}`} className="hover:text-brand-700 hover:underline">
+              {submission.jobOrder?.title}
+            </Link>
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            Still {statusLabel(submission.status).toLowerCase()} · last moved {daysAgo(submission.updatedAt)} days ago
+          </p>
+          {features?.ai && (
+            <button type="button" onClick={handleDraft} disabled={isLoading} className={`${linkButton} mt-2`}>
+              <FiMail className="h-3.5 w-3.5" aria-hidden="true" />
+              {isLoading ? "Drafting..." : draft ? "Redraft follow-up" : "Draft follow-up"}
+            </button>
+          )}
+          {draft && <DraftBlock draft={draft} />}
+          {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+        </div>
       )}
     </section>
   );
@@ -127,7 +299,10 @@ export function DashboardPage() {
           </div>
 
           <div className="grid gap-3 lg:grid-cols-2">
-            <SkillDemandCard gaps={data.skillGaps} />
+            <div className="flex flex-col gap-3">
+              <RecommendedShortlistCard />
+              <StaleSubmissionCard submission={data.staleSubmission} />
+            </div>
 
             <div className="flex flex-col gap-3">
               <section className={card} aria-labelledby="roles-title">
@@ -156,13 +331,7 @@ export function DashboardPage() {
                 {data.pipeline.length === 0 ? (
                   <EmptyState label="No submissions yet. Shortlist a candidate from a job order." />
                 ) : (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {data.pipeline.map((p) => (
-                      <span key={p.status} className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-sm text-slate-700">
-                        <span className="font-semibold text-slate-900">{p.count}</span> {statusLabel(p.status)}
-                      </span>
-                    ))}
-                  </div>
+                  <PipelineChart pipeline={data.pipeline} />
                 )}
               </section>
 

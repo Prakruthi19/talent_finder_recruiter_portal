@@ -14,6 +14,7 @@ import { JobOrderCreatePage } from "./pages/jobOrders/JobOrderCreatePage";
 import { JobOrderDetailPage } from "./pages/jobOrders/JobOrderDetailPage";
 import { JobOrderEditPage } from "./pages/jobOrders/JobOrderEditPage";
 import { SubmissionListPage } from "./pages/submissions/SubmissionListPage";
+import { SubmissionDetailPage } from "./pages/submissions/SubmissionDetailPage";
 import { DashboardPage } from "./pages/dashboard/DashboardPage";
 import { ActivityPage } from "./pages/activity/ActivityPage";
 
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="job-orders/:id/edit" element={<JobOrderEditPage />} />
 
           <Route path="submissions" element={<SubmissionListPage />} />
+          <Route path="submissions/:id" element={<SubmissionDetailPage />} />
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>

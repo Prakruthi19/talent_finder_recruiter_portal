@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { FiEye } from "react-icons/fi";
 import {
   useGetSubmissionsQuery,
   useGetSubmissionSummaryQuery,
@@ -83,6 +84,7 @@ export function SubmissionListPage() {
             <Th className="hidden sm:table-cell">Candidate</Th>
             <Th>Status</Th>
             <Th className="hidden sm:table-cell">Shortlisted On</Th>
+            <Th className="w-10">View</Th>
           </THead>
           <TBody>
             {data.items.map((s) => (
@@ -107,6 +109,15 @@ export function SubmissionListPage() {
                   <StatusBadge status={s.status} />
                 </Td>
                 <Td className="hidden sm:table-cell">{formatDate(s.createdAt)}</Td>
+                <Td>
+                  <Link
+                    to={`/submissions/${s.id}`}
+                    aria-label="View submission"
+                    className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-brand-700"
+                  >
+                    <FiEye className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                </Td>
               </Tr>
             ))}
           </TBody>

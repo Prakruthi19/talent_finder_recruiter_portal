@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { FiPlus, FiEye, FiEdit2, FiTrash2 } from "react-icons/fi";
 import {
   useGetCandidatesQuery,
@@ -35,10 +35,12 @@ const SORT_OPTIONS = [
 
 export function CandidateListPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const tenantId = useAppSelector((s) => s.tenant.selectedTenantId);
   const isAdmin = useCurrentRole() === "ADMIN";
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  // Dashboard's "Skills in demand" card links here with a skill preset via router state.
+  const [search, setSearch] = useState(() => (location.state as { search?: string } | null)?.search ?? "");
   const [sort, setSort] = useState("createdAt:desc");
   const debouncedSearch = useDebouncedValue(search);
   const [sortBy, sortDir] = sort.split(":") as [CandidateListParams["sortBy"], CandidateListParams["sortDir"]];

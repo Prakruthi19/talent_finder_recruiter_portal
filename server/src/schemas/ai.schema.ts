@@ -16,3 +16,7 @@ export const outreachSchema = candidateIdSchema.extend({
 export const candidateSearchSchema = z.object({
   query: z.string().trim().min(3, "Describe who you are looking for").max(300),
 });
+
+export const interviewMessageSchema = z.object({
+  kind: z.enum(["confirmation", "reminder"]),
+});

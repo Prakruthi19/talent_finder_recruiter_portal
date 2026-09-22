@@ -9,6 +9,9 @@ const STATUS_CLASSES: Record<string, string> = {
   INTERVIEWING: "border-indigo-200 bg-indigo-50 text-indigo-700",
   OFFERED: "border-violet-200 bg-violet-50 text-violet-700",
   REJECTED: "border-red-200 bg-red-50 text-red-700",
+  SCHEDULED: "border-indigo-200 bg-indigo-50 text-indigo-700",
+  COMPLETED: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  NO_SHOW: "border-red-200 bg-red-50 text-red-700",
 };
 
 const DOT_CLASSES: Record<string, string> = {
@@ -22,6 +25,9 @@ const DOT_CLASSES: Record<string, string> = {
   INTERVIEWING: "bg-indigo-500",
   OFFERED: "bg-violet-500",
   REJECTED: "bg-red-500",
+  SCHEDULED: "bg-indigo-500",
+  COMPLETED: "bg-emerald-500",
+  NO_SHOW: "bg-red-500",
 };
 
 function toLabel(status: string): string {

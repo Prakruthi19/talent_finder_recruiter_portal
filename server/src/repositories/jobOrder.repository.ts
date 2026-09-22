@@ -50,6 +50,7 @@ export const jobOrderRepository = {
               { title: { contains: search, mode: "insensitive" } },
               { clientName: { contains: search, mode: "insensitive" } },
               { location: { contains: search, mode: "insensitive" } },
+              { requiredSkills: { some: { skill: { name: { contains: search.toLowerCase() } } } } },
             ],
           }
         : {}),

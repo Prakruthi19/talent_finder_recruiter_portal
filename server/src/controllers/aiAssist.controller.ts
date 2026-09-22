@@ -1,7 +1,13 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import { aiAssistService } from "../services/aiAssist.service";
-import { candidateIdSchema, candidateSearchSchema, outreachSchema, parseJobDescriptionSchema } from "../schemas/ai.schema";
+import {
+  candidateIdSchema,
+  candidateSearchSchema,
+  interviewMessageSchema,
+  outreachSchema,
+  parseJobDescriptionSchema,
+} from "../schemas/ai.schema";
 import { getUserId } from "../middleware/auth";
 
 const idParam = z.string().uuid();
@@ -37,5 +43,21 @@ export const aiAssistController = {
 
   async dashboardBrief(req: Request, res: Response) {
     res.json(await aiAssistService.dashboardBrief(req.tenantId!));
+  },
+
+  async recommendShortlist(req: Request, res: Response) {
+    res.json(await aiAssistService.recommendShortlist(req.tenantId!));
+  },
+
+  async followUp(req: Request, res: Response) {
+    const { candidateId } = candidateIdSchema.parse(req.body);
+    res.json(await aiAssistService.draftFollowUp(req.tenantId!, getUserId(req), idParam.parse(req.params.id), candidateId));
+  },
+
+  async interviewMessage(req: Request, res: Response) {
+    const { kind } = interviewMessageSchema.parse(req.body);
+    res.json(
+      await aiAssistService.draftInterviewMessage(req.tenantId!, getUserId(req), idParam.parse(req.params.id), kind)
+    );
   },
 };
