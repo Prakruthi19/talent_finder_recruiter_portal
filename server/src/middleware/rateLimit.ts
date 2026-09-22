@@ -1,4 +1,4 @@
-import type { RequestHandler } from "express";
+import type { Request, RequestHandler } from "express";
 import { ipKeyGenerator, rateLimit } from "express-rate-limit";
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
@@ -26,6 +26,30 @@ export const uploadLimiter = limiter(30, "Too many CV uploads. Please try again 
 
 /** Login is keyed by IP (no user yet); slows password guessing. */
 export const loginLimiter = limiter(10, "Too many login attempts. Please try again in a few minutes.");
+
+/**
+ * The account a login attempt names, regardless of who's asking. An
+ * IP-based limit alone doesn't stop a botnet spreading guesses at one
+ * account across many IPs (a "credential stuffing" / distributed brute-force
+ * pattern) — this catches that case even though no single IP looks abusive.
+ * "no-email" is a shared bucket for a malformed request with no email at
+ * all; those fail validation immediately anyway, so sharing a bucket for
+ * them is harmless.
+ */
+export function loginAccountKey(req: Request): string {
+  const email = (req.body as { email?: unknown } | undefined)?.email;
+  return typeof email === "string" && email.trim() ? email.trim().toLowerCase() : "no-email";
+}
+
+/** Applied alongside loginLimiter (per IP): both must pass. Tighter, since one real account matters more than one IP. */
+export const loginLimiterPerAccount = rateLimit({
+  windowMs: FIFTEEN_MINUTES_MS,
+  limit: 8,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  keyGenerator: loginAccountKey,
+  message: { error: "Too many attempts for this account. Please try again in a few minutes." },
+});
 
 /** For endpoints where AI is opt-in per request (?ai=true): only those calls spend the AI budget. */
 export const aiLimiterIfRequested: RequestHandler = (req, res, next) =>

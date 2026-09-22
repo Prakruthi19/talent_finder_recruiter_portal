@@ -7,11 +7,18 @@ import {
   updateJobOrderSchema,
 } from "../schemas/jobOrder.schema";
 import { shortlistCandidateSchema } from "../schemas/submission.schema";
+import { uuidParamSchema } from "../schemas/common.schema";
 import { AppError } from "../lib/errors";
 
 function requireTenantId(req: Request): string {
   if (!req.tenantId) throw new AppError("Tenant context missing", 400);
   return req.tenantId;
+}
+
+/** `cvPath` is the candidate's file path on the server's disk — not for the client. See candidate.controller.ts. */
+function omitCvPath<T extends { cvPath?: string | null }>(candidate: T): Omit<T, "cvPath"> {
+  const { cvPath: _cvPath, ...rest } = candidate;
+  return rest;
 }
 
 export const jobOrderController = {
@@ -30,7 +37,7 @@ export const jobOrderController = {
 
   async getById(req: Request, res: Response) {
     const tenantId = requireTenantId(req);
-    const jobOrder = await jobOrderService.getById(tenantId, req.params.id as string);
+    const jobOrder = await jobOrderService.getById(tenantId, uuidParamSchema.parse(req.params.id));
     res.json(jobOrder);
   },
 
@@ -44,20 +51,24 @@ export const jobOrderController = {
   async update(req: Request, res: Response) {
     const tenantId = requireTenantId(req);
     const body = updateJobOrderSchema.parse(req.body);
-    const jobOrder = await jobOrderService.update(tenantId, req.params.id as string, body);
+    const jobOrder = await jobOrderService.update(tenantId, uuidParamSchema.parse(req.params.id), body);
     res.json(jobOrder);
   },
 
   async remove(req: Request, res: Response) {
     const tenantId = requireTenantId(req);
-    await jobOrderService.delete(tenantId, req.params.id as string);
+    await jobOrderService.delete(tenantId, uuidParamSchema.parse(req.params.id));
     res.status(204).send();
   },
 
   async matchingCandidates(req: Request, res: Response) {
     const tenantId = requireTenantId(req);
-    const result = await jobOrderService.matchingCandidates(tenantId, req.params.id as string);
-    res.json(result);
+    const result = await jobOrderService.matchingCandidates(tenantId, uuidParamSchema.parse(req.params.id));
+    res.json({
+      ...result,
+      matchingCandidates: result.matchingCandidates.map((row) => ({ ...row, candidate: omitCvPath(row.candidate) })),
+      shortlistedCandidates: result.shortlistedCandidates.map((row) => ({ ...row, candidate: omitCvPath(row.candidate) })),
+    });
   },
 
   /** Optional AI bonus feature — see server/src/lib/aiProvider.ts */
@@ -66,7 +77,7 @@ export const jobOrderController = {
     const { candidateId } = shortlistCandidateSchema.parse(req.body);
     const result = await aiInsightService.generateMatchInsight(
       tenantId,
-      req.params.id as string,
+      uuidParamSchema.parse(req.params.id),
       candidateId
     );
     res.json(result);

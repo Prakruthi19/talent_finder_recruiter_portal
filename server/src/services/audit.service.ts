@@ -1,4 +1,5 @@
 import { auditRepository, AuditEntry } from "../repositories/audit.repository";
+import { logError } from "../lib/safeLog";
 import type { PageParams } from "../repositories/pagination";
 
 // A path with the ids replaced by :id is the action key, so the same kind of
@@ -36,7 +37,7 @@ export const auditService = {
     try {
       await auditRepository.create(entry);
     } catch (err) {
-      console.error("audit log write failed", err);
+      logError("audit-write", err);
     }
   },
 

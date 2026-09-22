@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import multer from "multer";
 import { ZodError } from "zod";
 import { AppError } from "../lib/errors";
+import { logError } from "../lib/safeLog";
 
 /** Client errors raised by Express middleware (e.g. body-parser): carry a 4xx `status` and are safe to show. */
 function isExposedClientError(err: unknown): err is { status: number; message: string } {
@@ -33,6 +34,6 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
     return;
   }
 
-  console.error(err);
+  logError("unhandled", err);
   res.status(500).json({ error: "Internal server error" });
 }
