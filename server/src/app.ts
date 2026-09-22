@@ -7,6 +7,7 @@ import { tenantRoutes } from "./routes/tenant.routes";
 import { candidateRoutes } from "./routes/candidate.routes";
 import { jobOrderRoutes } from "./routes/jobOrder.routes";
 import { submissionRoutes } from "./routes/submission.routes";
+import { interviewRoutes } from "./routes/interview.routes";
 import { aiRoutes } from "./routes/ai.routes";
 import { auditRoutes } from "./routes/audit.routes";
 import { dashboardRoutes } from "./routes/dashboard.routes";
@@ -50,6 +51,7 @@ export function createApp() {
   app.use("/api/candidates", candidateRoutes);
   app.use("/api/job-orders", jobOrderRoutes);
   app.use("/api/submissions", submissionRoutes);
+  app.use("/api/interviews", interviewRoutes);
   app.use("/api/dashboard", dashboardRoutes);
   app.use("/api/ai", aiRoutes);
   app.use("/api/audit-logs", auditRoutes);

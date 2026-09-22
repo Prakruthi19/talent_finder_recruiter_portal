@@ -17,6 +17,12 @@ const submissionWithRelations = {
 
 export type SubmissionWithRelations = Prisma.SubmissionGetPayload<typeof submissionWithRelations>;
 
+const submissionDetail = {
+  include: { candidate: true, jobOrder: true, interviews: { orderBy: { round: "asc" } } },
+} satisfies Prisma.SubmissionDefaultArgs;
+
+export type SubmissionDetail = Prisma.SubmissionGetPayload<typeof submissionDetail>;
+
 export const submissionRepository = {
   async findMany(
     tenantId: string,
@@ -54,6 +60,26 @@ export const submissionRepository = {
   findByCandidateAndJobOrder(candidateId: string, jobOrderId: string) {
     return prisma.submission.findUnique({
       where: { candidateId_jobOrderId: { candidateId, jobOrderId } },
+    });
+  },
+
+  findById(tenantId: string, id: string): Promise<SubmissionDetail | null> {
+    return prisma.submission.findFirst({
+      where: { tenantId, id },
+      ...submissionDetail,
+    });
+  },
+
+  /** The longest-untouched submission still in an active (non-terminal) stage. Feeds the dashboard's stale-submission nudge. */
+  findMostStale(tenantId: string, staleDays = 7): Promise<SubmissionWithRelations | null> {
+    return prisma.submission.findFirst({
+      where: {
+        tenantId,
+        status: { notIn: ["HIRED", "REJECTED"] },
+        updatedAt: { lt: new Date(Date.now() - staleDays * 24 * 60 * 60 * 1000) },
+      },
+      orderBy: { updatedAt: "asc" },
+      ...submissionWithRelations,
     });
   },
 

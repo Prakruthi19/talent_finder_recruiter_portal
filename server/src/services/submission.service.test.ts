@@ -12,10 +12,13 @@ vi.mock("../repositories/jobOrder.repository", () => ({
 vi.mock("../repositories/candidate.repository", () => ({
   candidateRepository: { findById: (...args: unknown[]) => findCandidateById(...args) },
 }));
+const findSubmissionById = vi.fn();
+
 vi.mock("../repositories/submission.repository", () => ({
   submissionRepository: {
     findByCandidateAndJobOrder: (...args: unknown[]) => findByCandidateAndJobOrder(...args),
     create: (...args: unknown[]) => createSubmission(...args),
+    findById: (...args: unknown[]) => findSubmissionById(...args),
   },
 }));
 
@@ -82,6 +85,27 @@ describe("submissionService.shortlist", () => {
       candidateId: "cand-1",
       jobOrderId: "job-1",
       matchCount: 1,
+    });
+  });
+});
+
+describe("submissionService.getById", () => {
+  beforeEach(() => {
+    findSubmissionById.mockReset();
+  });
+
+  it("throws NotFoundError when the submission doesn't belong to this tenant", async () => {
+    findSubmissionById.mockResolvedValue(null);
+
+    await expect(submissionService.getById("tenant-1", "sub-1")).rejects.toThrow(NotFoundError);
+  });
+
+  it("returns the submission when it belongs to this tenant", async () => {
+    findSubmissionById.mockResolvedValue({ id: "sub-1", tenantId: "tenant-1" });
+
+    await expect(submissionService.getById("tenant-1", "sub-1")).resolves.toEqual({
+      id: "sub-1",
+      tenantId: "tenant-1",
     });
   });
 });

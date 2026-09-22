@@ -21,6 +21,7 @@ model Tenant {
   candidates  Candidate[]
   jobOrders   JobOrder[]
   submissions Submission[]
+  interviews  Interview[]
   memberships Membership[]
   auditLogs   AuditLog[]
 
@@ -207,6 +208,7 @@ model Submission {
   tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   jobOrder  JobOrder  @relation(fields: [jobOrderId], references: [id], onDelete: Cascade)
+  interviews Interview[]
 
   @@unique([candidateId, jobOrderId])
   @@index([tenantId])
@@ -223,4 +225,42 @@ enum SubmissionStatus {
   OFFERED
   REJECTED
   HIRED
+}
+
+// ---------------------------------------------------------------------------
+// Interview: one round of interviewing against a Submission. Scheduling and
+// status are tracked here; no calendar integration — scheduledAt is just a
+// plain timestamp the recruiter enters.
+// ---------------------------------------------------------------------------
+model Interview {
+  id           String          @id @default(uuid()) @db.Uuid
+  tenantId     String          @db.Uuid
+  submissionId String          @db.Uuid
+  round        Int
+  scheduledAt  DateTime
+  mode         InterviewMode
+  status       InterviewStatus @default(SCHEDULED)
+  notes        String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([submissionId])
+  @@map("interviews")
+}
+
+enum InterviewMode {
+  PHONE
+  VIDEO
+  ONSITE
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
 }

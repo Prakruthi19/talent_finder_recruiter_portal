@@ -11,6 +11,9 @@ import { NotFoundError } from "../lib/errors";
 import { candidateRepository } from "../repositories/candidate.repository";
 import { skillRepository } from "../repositories/skill.repository";
 import { userRepository } from "../repositories/user.repository";
+import { dashboardRepository } from "../repositories/dashboard.repository";
+import { interviewRepository } from "../repositories/interview.repository";
+import { submissionRepository } from "../repositories/submission.repository";
 import { loadMatchContext } from "./matchContext";
 import { dashboardService } from "./dashboard.service";
 
@@ -287,5 +290,134 @@ export const aiAssistService = {
       { maxTokens: 350, temperature: 0.4 }
     );
     return { brief };
+  },
+
+  /**
+   * The matching itself stays deterministic: dashboardRepository.topUnshortlistedPairing picks the
+   * single best-matching candidate/job-order pair (exact skill match, highest count) that hasn't
+   * been shortlisted yet. The AI's only job is to write one sentence explaining the pick.
+   */
+  async recommendShortlist(tenantId: string) {
+    const pairing = await dashboardRepository.topUnshortlistedPairing(tenantId);
+    if (!pairing) return { pick: null };
+
+    const { jobOrder, candidate, matchedSkillNames } = await loadMatchContext(
+      tenantId,
+      pairing.jobOrderId,
+      pairing.candidateId
+    );
+
+    const reason = await generateChatCompletion(
+      [
+        {
+          role: "system",
+          content:
+            "You are a recruiting analyst. In one sentence (30 words or fewer), explain why this candidate is a " +
+            "strong pick to shortlist next for this role. Use only the facts given; do not invent anything. " +
+            "Plain text, no markdown.",
+        },
+        {
+          role: "user",
+          content: [
+            `Role: ${jobOrder.title}, ${jobOrder.numberOfOpenings.toString()} opening(s).`,
+            `Candidate: ${candidate.experienceYears.toString()} years of experience.`,
+            `Matched required skills: ${matchedSkillNames.join(", ") || "none"} (${pairing.matchCount.toString()} of the role's required skills).`,
+          ].join("\n"),
+        },
+      ],
+      { maxTokens: 100, temperature: 0.4 }
+    );
+
+    return {
+      pick: {
+        jobOrderId: jobOrder.id,
+        jobOrderTitle: jobOrder.title,
+        candidateId: candidate.id,
+        candidateName: candidate.fullName,
+        matchCount: pairing.matchCount,
+        reason,
+      },
+    };
+  },
+
+  /** A short check-in for a submission that's been sitting in the same stage a while. Never sent by the app. */
+  async draftFollowUp(tenantId: string, userId: string, jobOrderId: string, candidateId: string) {
+    const { jobOrder, candidate } = await loadMatchContext(tenantId, jobOrderId, candidateId);
+    const recruiter = await userRepository.findById(userId);
+
+    const draft = await generateJson(
+      [
+        {
+          role: "system",
+          content:
+            "You write a short (60-100 words) check-in email from a recruiter to a candidate already in process " +
+            `for a role, asking for a status update on next steps. Address the candidate as ${CANDIDATE_NAME} and ` +
+            `sign off as ${RECRUITER_NAME}; use those two placeholders exactly. Only mention the facts provided. ` +
+            'Reply with ONLY one JSON object: {"subject": "...", "body": "..."}. Plain text, no markdown.',
+        },
+        {
+          role: "user",
+          content: [
+            `Role: ${jobOrder.title}${jobOrder.clientName ? ` at ${jobOrder.clientName}` : ""}, ${jobOrder.location}.`,
+            "This candidate has been in the current stage for a while with no update.",
+          ].join("\n"),
+        },
+      ],
+      outreachDraftSchema,
+      { maxTokens: 400, temperature: 0.5 }
+    );
+
+    const values = { [CANDIDATE_NAME]: candidate.fullName, [RECRUITER_NAME]: recruiter?.name ?? "The recruiting team" };
+    return { subject: fill(draft.subject, values), body: fill(draft.body, values) };
+  },
+
+  /** A short confirmation or reminder for one interview round. Never sent by the app — no calendar integration. */
+  async draftInterviewMessage(tenantId: string, userId: string, interviewId: string, kind: "confirmation" | "reminder") {
+    const interview = await interviewRepository.findById(tenantId, interviewId);
+    if (!interview) throw new NotFoundError("Interview");
+    const submission = await submissionRepository.findById(tenantId, interview.submissionId);
+    if (!submission) throw new NotFoundError("Submission");
+    const recruiter = await userRepository.findById(userId);
+
+    const when = interview.scheduledAt.toLocaleString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    const modeLabel = interview.mode.charAt(0) + interview.mode.slice(1).toLowerCase();
+
+    const intent =
+      kind === "confirmation"
+        ? "confirm that an interview has been scheduled and ask the candidate to confirm they can attend"
+        : "remind the candidate of their upcoming interview, restating the details";
+
+    const draft = await generateJson(
+      [
+        {
+          role: "system",
+          content:
+            `You write a short (60-100 words) email from a recruiter to a candidate to ${intent}. Address the ` +
+            `candidate as ${CANDIDATE_NAME} and sign off as ${RECRUITER_NAME}; use those two placeholders exactly. ` +
+            "Only mention the facts provided. Do not mention a video/call link or any tool, since none is provided. " +
+            'Reply with ONLY one JSON object: {"subject": "...", "body": "..."}. Plain text, no markdown.',
+        },
+        {
+          role: "user",
+          content: [
+            `Role: ${submission.jobOrder.title}${submission.jobOrder.clientName ? ` at ${submission.jobOrder.clientName}` : ""}.`,
+            `Interview round: ${interview.round.toString()}.`,
+            `Date and time: ${when}.`,
+            `Mode: ${modeLabel}.`,
+          ].join("\n"),
+        },
+      ],
+      outreachDraftSchema,
+      { maxTokens: 400, temperature: 0.5 }
+    );
+
+    const values = { [CANDIDATE_NAME]: submission.candidate.fullName, [RECRUITER_NAME]: recruiter?.name ?? "The recruiting team" };
+    return { subject: fill(draft.subject, values), body: fill(draft.body, values) };
   },
 };

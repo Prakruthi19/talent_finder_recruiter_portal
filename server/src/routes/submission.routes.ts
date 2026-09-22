@@ -10,3 +10,4 @@ submissionRoutes.use(requireAuth, requireTenant);
 
 submissionRoutes.get("/", asyncHandler(submissionController.list));
 submissionRoutes.get("/summary", asyncHandler(submissionController.summary));
+submissionRoutes.get("/:id", asyncHandler(submissionController.getById));

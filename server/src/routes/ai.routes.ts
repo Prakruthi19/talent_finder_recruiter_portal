@@ -17,3 +17,6 @@ aiRoutes.post("/job-orders/:id/outreach", asyncHandler(aiAssistController.outrea
 aiRoutes.post("/job-orders/:id/interview-questions", asyncHandler(aiAssistController.interviewQuestions));
 aiRoutes.post("/candidate-search", asyncHandler(aiAssistController.candidateSearch));
 aiRoutes.post("/dashboard-brief", asyncHandler(aiAssistController.dashboardBrief));
+aiRoutes.post("/recommend-shortlist", asyncHandler(aiAssistController.recommendShortlist));
+aiRoutes.post("/job-orders/:id/follow-up", asyncHandler(aiAssistController.followUp));
+aiRoutes.post("/interviews/:id/message", asyncHandler(aiAssistController.interviewMessage));

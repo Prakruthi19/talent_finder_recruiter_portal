@@ -100,6 +100,23 @@ export interface Submission {
   updatedAt: string;
   candidate?: Candidate;
   jobOrder?: JobOrder;
+  interviews?: Interview[];
+}
+
+export type InterviewMode = "PHONE" | "VIDEO" | "ONSITE";
+export type InterviewStatus = "SCHEDULED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+
+export interface Interview {
+  id: string;
+  tenantId: string;
+  submissionId: string;
+  round: number;
+  scheduledAt: string;
+  mode: InterviewMode;
+  status: InterviewStatus;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PageResult<T> {
@@ -156,6 +173,17 @@ export interface DashboardOverview {
   /** Skills open roles need, scarcest first. demand = open roles needing it, supply = candidates who have it. */
   skillGaps: { skill: string; demand: number; supply: number }[];
   rolesNeedingAttention: { id: string; title: string; openings: number; candidates: number; shortlisted: number }[];
+  /** The longest-untouched submission still in an active stage (7+ days), or null. */
+  staleSubmission: Submission | null;
+}
+
+export interface RecommendedPick {
+  jobOrderId: string;
+  jobOrderTitle: string;
+  candidateId: string;
+  candidateName: string;
+  matchCount: number;
+  reason: string;
 }
 
 export interface AuditLogRow {

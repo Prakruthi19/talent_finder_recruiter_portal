@@ -18,6 +18,12 @@ export interface RoleNeedingAttention {
   shortlisted: number;
 }
 
+export interface UnshortlistedPairing {
+  jobOrderId: string;
+  candidateId: string;
+  matchCount: number;
+}
+
 // All of these are raw SQL on purpose (like the matching query): they group and
 // join across tables in the database instead of looping in Node. They lean on
 // the skillId indexes on candidate_skills / job_order_required_skills. They go
@@ -64,6 +70,30 @@ export const dashboardRepository = {
       ORDER BY candidates ASC, jo.title
       LIMIT ${limit}
     `);
+  },
+
+  /**
+   * The single best candidate/job-order pairing that hasn't been shortlisted yet
+   * (highest exact skill-match count, tenant-scoped, open roles only) — same
+   * exact-match rule as jobOrder.repository.findMatchCounts, just dashboard-wide
+   * instead of scoped to one job order. Feeds the "Recommended next shortlist" card.
+   */
+  async topUnshortlistedPairing(tenantId: string): Promise<UnshortlistedPairing | null> {
+    const rows = await scopedQueryRaw<UnshortlistedPairing[]>(Prisma.sql`
+      SELECT jo.id AS "jobOrderId", c.id AS "candidateId", COUNT(DISTINCT r."skillId")::int AS "matchCount"
+      FROM job_orders jo
+      JOIN job_order_required_skills r ON r."jobOrderId" = jo.id
+      JOIN candidate_skills cs ON cs."skillId" = r."skillId"
+      JOIN candidates c ON c.id = cs."candidateId" AND c."tenantId" = jo."tenantId"
+      WHERE jo."tenantId" = ${tenantId}::uuid AND jo.status = 'OPEN'
+        AND NOT EXISTS (
+          SELECT 1 FROM submissions s WHERE s."candidateId" = c.id AND s."jobOrderId" = jo.id
+        )
+      GROUP BY jo.id, c.id, c."experienceYears"
+      ORDER BY "matchCount" DESC, c."experienceYears" DESC
+      LIMIT 1
+    `);
+    return rows[0] ?? null;
   },
 
   async submissionsByStatus(tenantId: string) {

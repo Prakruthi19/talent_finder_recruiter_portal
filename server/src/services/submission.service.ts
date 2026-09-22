@@ -20,6 +20,12 @@ export const submissionService = {
     return { total, shortlistedCount };
   },
 
+  async getById(tenantId: string, id: string) {
+    const submission = await submissionRepository.findById(tenantId, id);
+    if (!submission) throw new NotFoundError("Submission");
+    return submission;
+  },
+
   /**
    * Shortlisting a candidate for a job order creates the Submission record.
    * matchCount is recomputed server-side rather than trusted from the

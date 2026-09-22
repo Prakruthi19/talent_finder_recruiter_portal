@@ -65,6 +65,40 @@ function AiInsightPanel({ jobOrderId, candidateId }: { jobOrderId: string; candi
   );
 }
 
+/**
+ * A single-hue magnitude comparison (matched vs required skill count) across the
+ * top candidates — nominal categorical, so every bar takes the same slot-1 hue
+ * (brand-600); identity comes from the direct name label, not color.
+ */
+function TopMatchesChart({ candidates, totalRequired }: { candidates: MatchingCandidateRow[]; totalRequired: number }) {
+  const top = candidates.slice(0, 5); // already ranked by match count, highest first
+  if (top.length === 0 || totalRequired === 0) return null;
+  return (
+    <div className="mb-5 rounded-md border border-slate-200 bg-slate-50/60 p-3">
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Top matches</h3>
+      <div className="flex flex-col gap-2">
+        {top.map((row) => (
+          <div key={row.candidate.id}>
+            <div className="mb-0.5 flex items-center justify-between text-xs">
+              <span className="font-medium text-slate-700">{row.candidate.fullName}</span>
+              <span className="text-slate-500">
+                {row.matchCount}/{totalRequired}
+              </span>
+            </div>
+            <div className="h-5 w-full overflow-hidden rounded-md bg-slate-200/70">
+              <div
+                className="h-5 rounded-r-[4px] bg-brand-600 transition-[width]"
+                style={{ width: `${Math.min(100, (row.matchCount / totalRequired) * 100)}%` }}
+                title={`${row.candidate.fullName}: ${row.matchCount} of ${totalRequired} required skills`}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function MatchRow({
   jobOrderId,
   row,
@@ -204,6 +238,7 @@ export function JobOrderDetailPage() {
         <p className="mb-4 text-sm text-slate-500">
           Ranked by number of required skills matched, highest first.
         </p>
+        <TopMatchesChart candidates={matchingCandidates} totalRequired={jobOrder.requiredSkills.length} />
         {matchingCandidates.length === 0 ? (
           <EmptyState label="No candidates in this tenant match the required skills yet." />
         ) : (

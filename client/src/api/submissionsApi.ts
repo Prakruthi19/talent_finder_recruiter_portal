@@ -44,7 +44,15 @@ export const submissionsApi = baseApi.injectEndpoints({
       query: () => "/submissions/summary",
       providesTags: [{ type: "Submission", id: "SUMMARY" }],
     }),
+    /**
+     * useGetSubmissionQuery(id) -> GET /api/submissions/:id -> submission.controller.getById
+     *   -> submission.repository.findById (candidate + jobOrder + interviews, ordered by round)
+     */
+    getSubmission: builder.query<Submission, string>({
+      query: (id) => `/submissions/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "Submission", id }],
+    }),
   }),
 });
 
-export const { useGetSubmissionsQuery, useGetSubmissionSummaryQuery } = submissionsApi;
+export const { useGetSubmissionsQuery, useGetSubmissionSummaryQuery, useGetSubmissionQuery } = submissionsApi;
