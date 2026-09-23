@@ -5,11 +5,13 @@ import { useGetSubmissionQuery } from "../../api/submissionsApi";
 import { useScheduleInterviewMutation, useUpdateInterviewMutation } from "../../api/interviewsApi";
 import { useDraftInterviewMessageMutation } from "../../api/aiApi";
 import { useGetFeaturesQuery } from "../../api/authApi";
+import { useGetSubmissionNotesQuery, useAddSubmissionNoteMutation } from "../../api/notesApi";
 import { aiErrorMessage } from "../../lib/aiErrors";
 import { Button } from "../../components/ui/Button";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { LoadingState, ErrorState, EmptyState } from "../../components/ui/PageStates";
 import { FormField } from "../../components/forms/FormField";
+import { NotesPanel } from "../../components/notes/NotesPanel";
 import { formatDateTime } from "../../lib/format";
 import type { Interview, InterviewMode, OutreachDraft } from "../../types";
 
@@ -185,6 +187,8 @@ export function SubmissionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: submission, isLoading, isError } = useGetSubmissionQuery(id!);
+  const { data: notes, isLoading: notesLoading } = useGetSubmissionNotesQuery(id!, { skip: !id });
+  const [addNote] = useAddSubmissionNoteMutation();
 
   if (isLoading) return <LoadingState />;
   if (isError || !submission) return <ErrorState label="Submission not found." />;
@@ -234,6 +238,12 @@ export function SubmissionDetailPage() {
         )}
         <ScheduleInterviewForm submissionId={submission.id} />
       </div>
+
+      <NotesPanel
+        notes={notes}
+        isLoading={notesLoading}
+        onAdd={(body) => addNote({ submissionId: submission.id, body }).unwrap()}
+      />
     </div>
   );
 }
