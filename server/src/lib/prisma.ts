@@ -15,8 +15,8 @@ const base = new PrismaClient();
 
 // Tables the migration protects. Identity tables (tenants, users, memberships)
 // and the shared skills list are deliberately not in it.
-const RLS_MODELS = new Set(["Candidate", "JobOrder", "Submission", "Interview", "AuditLog", "CandidateSkill", "JobOrderRequiredSkill"]);
-const RLS_TABLES = ["candidates", "job_orders", "submissions", "interviews", "audit_logs", "candidate_skills", "job_order_required_skills"];
+const RLS_MODELS = new Set(["Candidate", "JobOrder", "Submission", "Interview", "Note", "AuditLog", "CandidateSkill", "JobOrderRequiredSkill"]);
+const RLS_TABLES = ["candidates", "job_orders", "submissions", "interviews", "notes", "audit_logs", "candidate_skills", "job_order_required_skills"];
 const DEFAULT_ROLE = "talentfinder_app";
 
 // The role to SET ROLE to, decided once at startup by initRls(). Null when it

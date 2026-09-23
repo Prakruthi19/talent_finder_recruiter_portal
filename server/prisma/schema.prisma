@@ -22,6 +22,7 @@ model Tenant {
   jobOrders   JobOrder[]
   submissions Submission[]
   interviews  Interview[]
+  notes       Note[]
   memberships Membership[]
   auditLogs   AuditLog[]
 
@@ -48,6 +49,7 @@ model User {
 
   memberships Membership[]
   auditLogs   AuditLog[]
+  notes       Note[]
 
   @@map("users")
 }
@@ -126,6 +128,7 @@ model Candidate {
   tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   skills      CandidateSkill[]
   submissions Submission[]
+  notes       Note[]
 
   // Email identifies a candidate within a tenant. Postgres treats NULLs as
   // distinct, so candidates without an email never collide. The app stores
@@ -209,6 +212,7 @@ model Submission {
   candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   jobOrder  JobOrder  @relation(fields: [jobOrderId], references: [id], onDelete: Cascade)
   interviews Interview[]
+  notes      Note[]
 
   @@unique([candidateId, jobOrderId])
   @@index([tenantId])
@@ -263,4 +267,31 @@ enum InterviewStatus {
   COMPLETED
   CANCELLED
   NO_SHOW
+}
+
+// ---------------------------------------------------------------------------
+// Note: a free-text log entry a recruiter leaves on a Candidate or a
+// Submission ("called, not interested"). Exactly one of candidateId/
+// submissionId is set — enforced by a CHECK constraint in the migration,
+// since Prisma has no first-class "exactly one of" construct. Append-only:
+// no update/delete, it's a log, not an editable field.
+// ---------------------------------------------------------------------------
+model Note {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @db.Uuid
+  candidateId  String?  @db.Uuid
+  submissionId String?  @db.Uuid
+  authorId     String   @db.Uuid
+  body         String
+  createdAt    DateTime @default(now())
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  candidate  Candidate?  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  submission Submission? @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  author     User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([candidateId])
+  @@index([submissionId])
+  @@map("notes")
 }

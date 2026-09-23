@@ -19,6 +19,7 @@ vi.mock("../repositories/dashboard.repository", () => ({
     submissionsByStatus: fake("pipeline", [{ status: "SHORTLISTED", count: 2 }]),
     skillGaps: fake("gaps", [{ skill: "docker", demand: 3, supply: 1 }]),
     rolesNeedingAttention: fake("roles", [{ id: "j1", title: "DevOps", openings: 1, candidates: 0, shortlisted: 0 }]),
+    submissionsTrend: fake("trend", [{ weekStart: "2026-09-14", count: 2 }]),
   },
 }));
 
@@ -34,8 +35,9 @@ describe("dashboardService.overview", () => {
       skillGaps: [{ skill: "docker", demand: 3, supply: 1 }],
       rolesNeedingAttention: [{ id: "j1", title: "DevOps", openings: 1, candidates: 0, shortlisted: 0 }],
       staleSubmission: null,
+      submissionsTrend: [{ weekStart: "2026-09-14", count: 2 }],
     });
-    for (const name of ["candidates", "thisWeek", "openJobs", "openings", "submissions", "pipeline", "gaps", "roles", "stale"]) {
+    for (const name of ["candidates", "thisWeek", "openJobs", "openings", "submissions", "pipeline", "gaps", "roles", "stale", "trend"]) {
       expect(calls[name]![0], `${name} must be scoped to the tenant`).toBe("tenant-1");
     }
   });

@@ -39,7 +39,7 @@ const baseQueryWithAuth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQuery
 export const baseApi = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithAuth,
-  tagTypes: ["Tenant", "Candidate", "JobOrder", "Submission", "JobOrderMatches", "Me", "Audit"],
+  tagTypes: ["Tenant", "Candidate", "JobOrder", "Submission", "JobOrderMatches", "Me", "Audit", "Note"],
   // Dashboard/Audit data goes stale after almost any action, so it is always
   // fetched fresh when its page is opened (see dashboardApi.ts).
   endpoints: () => ({}),

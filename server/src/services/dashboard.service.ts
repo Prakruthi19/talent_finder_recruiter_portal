@@ -16,6 +16,7 @@ export const dashboardService = {
       skillGaps,
       rolesNeedingAttention,
       staleSubmission,
+      submissionsTrend,
     ] = await Promise.all([
       candidateRepository.count(tenantId),
       candidateRepository.countThisWeek(tenantId),
@@ -26,6 +27,7 @@ export const dashboardService = {
       dashboardRepository.skillGaps(tenantId),
       dashboardRepository.rolesNeedingAttention(tenantId),
       submissionRepository.findMostStale(tenantId),
+      dashboardRepository.submissionsTrend(tenantId),
     ]);
 
     return {
@@ -34,6 +36,7 @@ export const dashboardService = {
       skillGaps,
       rolesNeedingAttention,
       staleSubmission,
+      submissionsTrend,
     };
   },
 };

@@ -1,6 +1,8 @@
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { FiArrowLeft, FiEdit2, FiTrash2, FiDownload } from "react-icons/fi";
 import { useGetCandidateQuery, useDeleteCandidateMutation } from "../../api/candidatesApi";
+import { useGetCandidateNotesQuery, useAddCandidateNoteMutation } from "../../api/notesApi";
+import { NotesPanel } from "../../components/notes/NotesPanel";
 import { useCurrentRole } from "../../hooks/useAuth";
 import { authHeaders } from "../../lib/authHeaders";
 import { API_BASE_URL } from "../../api/baseApi";
@@ -32,6 +34,8 @@ export function CandidateDetailPage() {
   const isAdmin = useCurrentRole() === "ADMIN";
   const { data: candidate, isLoading, isError } = useGetCandidateQuery(id!);
   const [deleteCandidate] = useDeleteCandidateMutation();
+  const { data: notes, isLoading: notesLoading } = useGetCandidateNotesQuery(id!, { skip: !id });
+  const [addNote] = useAddCandidateNoteMutation();
 
   async function handleDelete() {
     if (!candidate) return;
@@ -135,6 +139,8 @@ export function CandidateDetailPage() {
           </ul>
         )}
       </div>
+
+      <NotesPanel notes={notes} isLoading={notesLoading} onAdd={(body) => addNote({ candidateId: candidate.id, body }).unwrap()} />
     </div>
   );
 }

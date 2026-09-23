@@ -79,6 +79,66 @@ function PipelineChart({ pipeline }: { pipeline: DashboardOverview["pipeline"] }
   );
 }
 
+function formatWeekLabel(isoDate: string): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return new Date(y!, (m ?? 1) - 1, d).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+/**
+ * A single measure (new submissions) over time -> one series, one hue (brand-600),
+ * no legend needed (the title says what's plotted). Line + a light area wash,
+ * per-point hover title, direct label only on the last point (the one the
+ * story is about) rather than a number on every point.
+ */
+function TrendChart({ trend }: { trend: DashboardOverview["submissionsTrend"] }) {
+  const total = trend.reduce((sum, t) => sum + t.count, 0);
+  if (total === 0) return <EmptyState label="No submissions yet in the last 8 weeks." />;
+
+  const chartWidth = 280;
+  const chartHeight = 64;
+  const padX = 12;
+  const padTop = 10;
+  const max = Math.max(1, ...trend.map((t) => t.count));
+  const n = trend.length;
+
+  const points = trend.map((t, i) => ({
+    x: padX + (n === 1 ? chartWidth / 2 : (i / (n - 1)) * chartWidth),
+    y: padTop + (1 - t.count / max) * (chartHeight - padTop),
+    count: t.count,
+    weekStart: t.weekStart,
+  }));
+  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+  const last = points[points.length - 1]!;
+  const first = points[0]!;
+  const areaPath = `${linePath} L ${last.x.toFixed(1)} ${chartHeight + padTop} L ${first.x.toFixed(1)} ${chartHeight + padTop} Z`;
+
+  return (
+    <div>
+      <svg
+        viewBox={`0 0 ${chartWidth + padX * 2} ${chartHeight + padTop + 4}`}
+        className="w-full text-brand-600"
+        role="img"
+        aria-label={`Submissions per week for the last ${n} weeks, ending at ${last.count} this week`}
+      >
+        <path d={areaPath} fill="currentColor" fillOpacity={0.1} stroke="none" />
+        <path d={linePath} fill="none" stroke="currentColor" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+        {points.map((p) => (
+          <circle key={p.weekStart} cx={p.x} cy={p.y} r={3} className="fill-brand-600 stroke-white" strokeWidth={2}>
+            <title>{`Week of ${formatWeekLabel(p.weekStart)}: ${p.count} submission${p.count === 1 ? "" : "s"}`}</title>
+          </circle>
+        ))}
+        <text x={last.x} y={Math.max(9, last.y - 8)} textAnchor="end" className="fill-slate-700 text-[10px] font-semibold">
+          {last.count}
+        </text>
+      </svg>
+      <div className="mt-1 flex justify-between text-[10px] text-slate-400">
+        <span>{formatWeekLabel(first.weekStart)}</span>
+        <span>{formatWeekLabel(last.weekStart)}</span>
+      </div>
+    </div>
+  );
+}
+
 const card = "rounded-md border border-slate-200 bg-white p-4 shadow-sm";
 const linkButton =
   "inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-800 disabled:opacity-50";
@@ -338,6 +398,12 @@ export function DashboardPage() {
               <AiBrief />
             </div>
           </div>
+
+          <section className={card} aria-labelledby="trend-title">
+            <h2 id="trend-title" className="text-base font-semibold text-slate-900">Submissions trend</h2>
+            <p className="mb-2 text-xs text-slate-500">New submissions per week, last 8 weeks.</p>
+            <TrendChart trend={data.submissionsTrend} />
+          </section>
         </>
       )}
     </div>

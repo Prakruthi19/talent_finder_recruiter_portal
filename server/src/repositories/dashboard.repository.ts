@@ -24,6 +24,11 @@ export interface UnshortlistedPairing {
   matchCount: number;
 }
 
+export interface WeeklySubmissionCount {
+  weekStart: string;
+  count: number;
+}
+
 // All of these are raw SQL on purpose (like the matching query): they group and
 // join across tables in the database instead of looping in Node. They lean on
 // the skillId indexes on candidate_skills / job_order_required_skills. They go
@@ -94,6 +99,23 @@ export const dashboardRepository = {
       LIMIT 1
     `);
     return rows[0] ?? null;
+  },
+
+  /** New submissions per week for the last `weeks` weeks (including weeks with zero). Feeds the dashboard's trend chart. */
+  submissionsTrend(tenantId: string, weeks = 8): Promise<WeeklySubmissionCount[]> {
+    return scopedQueryRaw<WeeklySubmissionCount[]>(Prisma.sql`
+      WITH weeks AS (
+        SELECT (date_trunc('week', now()) - (n || ' weeks')::interval)::date AS week_start
+        FROM generate_series(${weeks - 1}, 0, -1) AS n
+      )
+      SELECT w.week_start::text AS "weekStart", COUNT(s.id)::int AS count
+      FROM weeks w
+      LEFT JOIN submissions s
+        ON s."tenantId" = ${tenantId}::uuid
+       AND date_trunc('week', s."createdAt")::date = w.week_start
+      GROUP BY w.week_start
+      ORDER BY w.week_start
+    `);
   },
 
   async submissionsByStatus(tenantId: string) {

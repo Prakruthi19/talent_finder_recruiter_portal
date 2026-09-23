@@ -61,6 +61,13 @@ export interface CandidateWithSubmissions extends Candidate {
   submissions: Submission[];
 }
 
+export interface Note {
+  id: string;
+  body: string;
+  createdAt: string;
+  author: { id: string; name: string };
+}
+
 export type JobOrderStatus = "OPEN" | "CLOSED";
 
 export interface JobOrderRequiredSkillLink {
@@ -175,6 +182,8 @@ export interface DashboardOverview {
   rolesNeedingAttention: { id: string; title: string; openings: number; candidates: number; shortlisted: number }[];
   /** The longest-untouched submission still in an active stage (7+ days), or null. */
   staleSubmission: Submission | null;
+  /** New submissions per week, oldest first, for the last 8 weeks (including weeks with zero). */
+  submissionsTrend: { weekStart: string; count: number }[];
 }
 
 export interface RecommendedPick {
